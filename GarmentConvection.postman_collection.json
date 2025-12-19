@@ -6861,7 +6861,7 @@
 	"variable": [
 		{
 			"key": "baseUrl",
-			"value": "https://api.zumar.co.id/"
+			"value": "https://api.zumar.co.id"
 		}
 	]
 }
