@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import secondaryLogo from '../assets/Logo/secondary_logo.png';
 import StickyNavbar from '../components/Navbar';
 import LoginPerson from '../assets/Image/Login_person.png';
-import { signIn, getCurrentUserRole } from '../api/auth';
+import { signIn, isAdmin, fetchAndStoreUserPermissions } from '../api/auth';
 import { saveToken, getToken } from '../utils/tokenManager';
 
 const SignIn = () => {
@@ -18,21 +18,25 @@ const SignIn = () => {
     setTimeout(() => setAnimatePage(true), 50);
 
     // 🔹 Cek apakah user sudah login dari token
-    const token = getToken();
-    if (token) {
-      try {
-        const role = getCurrentUserRole();
-
-        if (role === 'ADMIN' || role === 'OWNER' || role === 'TAYLOR' || role === 'STAFF') {
-          window.location.href = '/admin/dashboard';
-        } else {
-          window.location.href = '/';
+    const checkAuth = async () => {
+      const token = getToken();
+      if (token) {
+        try {
+          // Refresh permissions to ensure accuracy
+          await fetchAndStoreUserPermissions();
+          
+          if (isAdmin()) {
+            window.location.href = '/admin/dashboard';
+          } else {
+            window.location.href = '/';
+          }
+        } catch (err) {
+          console.error('Token validation error:', err);
+          localStorage.removeItem('token');
         }
-      } catch (err) {
-        console.error('Token decode error:', err);
-        localStorage.removeItem('token');
       }
-    }
+    };
+    checkAuth();
   }, []);
 
   const handleChange = (e) => {
@@ -56,11 +60,11 @@ const SignIn = () => {
         saveToken(token);
         console.log('Token saved successfully');
 
-        // 🔹 Redirect sesuai role (langsung dari JWT token)
-        const role = getCurrentUserRole();
-        console.log('User role from JWT:', role);
+        // 🔹 Fetch dan simpan permissions
+        await fetchAndStoreUserPermissions();
 
-        if (role === 'ADMIN' || role === 'OWNER' || role === 'TAYLOR' || role === 'STAFF') {
+        // 🔹 Redirect sesuai permission 'admin.access'
+        if (isAdmin()) {
           window.location.href = '/admin/dashboard';
         } else {
           window.location.href = '/';
