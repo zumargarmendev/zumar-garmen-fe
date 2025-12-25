@@ -13,16 +13,28 @@ import BackgroundImage from '../assets/background/bg-zumar.png';
 const catalogSlides = [
   {
     id: 1,
-    title: "Produk\nKebutuhan\nMedis",
-    description: "Lorem ipsum dolor sit amet consectetur. Non sed commodo sed fermentum aliquam vulputate volutpat tortor hac.",
+    title: "Produk\nBusana\nMuslim",
+    description: "Koleksi muslim yang stylish dan nyaman untuk menunjang tampilan harian maupun acara spesial.",
     image: catalogImage,
   },
   {
     id: 2,
     title: "Produk\nKebutuhan\nMedis",
-    description: "Lorem ipsum dolor sit amet consectetur. Non sed commodo sed fermentum aliquam vulputate volutpat tortor hac.",
+    description: "Produk medis dengan standar keamanan, praktis, nyaman, dan tahan lama untuk kebutuhan klinik hingga rumah sakit.",
     image: catalogImage,
-  }
+  },
+  {
+    id: 3,
+    title: "Produk\nApparel",
+    description: "Pilihan apparel berkualitas untuk kebutuhan brand, komunitas, hingga event skala besar maupun kecil.",
+    image: catalogImage,
+  },
+  {
+    id: 4,
+    title: "Produk\nNon-Apparel",
+    description: "Pilihan produk fungsional dan tahan lama untuk menunjang berbagai aktivitas dan kebutuhan usaha.",
+    image: catalogImage,
+  },
   // Tambahkan slide lain jika perlu
 ];
 

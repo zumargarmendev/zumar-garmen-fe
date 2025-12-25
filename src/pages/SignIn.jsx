@@ -106,9 +106,9 @@ const SignIn = () => {
               <img src={secondaryLogo} alt="Logo" className="h-40 mr-4" />
               <div className="flex flex-col text-left">
                 <h2 className="text-4xl font-bold mb-1">Sign In To</h2>
-                <p className="text-2xl font-light mb-2">Lorem Ipsum is simply</p>
+                <p className="text-2xl font-light mb-2">Zumar Garmen</p>
                 <p className="text-sm max-w-xs">
-                  Lorem Ipsum is simply dummy text of the printing and typesetting industry.
+                  Nikmati kemudahan berbelanja produk konveksi berkualitas tinggi. Dari seragam kerja, pakaian olahraga, hingga fashion kasual - semua dibuat dengan standar terbaik dan pelayanan profesional.
                 </p>
               </div>
             </div>

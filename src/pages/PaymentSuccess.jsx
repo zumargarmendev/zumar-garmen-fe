@@ -130,8 +130,7 @@ export default function PaymentSuccess() {
                   Order<br />Payment<br />Gateway
                 </h1>
                 <p className="text-black font-montserrat text-sm md:text-base max-w-xs mb-4">
-                  Lorem ipsum dolor sit amet consectetur. Non sed commodo sed
-                  fermentum aliquam vulputate volutpat tortor hac.
+                  Pesanan Anda hampir siap diproses. Lakukan pembayaran melalui QRIS resmi Zumar Garmen Indonesia untuk menjamin proses yang cepat dan aman.
                 </p>
               </div>
 

@@ -67,8 +67,8 @@ const SignUp = () => {
             <img src={secondaryLogoWhite} alt="Zumar Apparels Logo" className="h-40 mr-4" />
             <div className="flex flex-col text-left">
               <h2 className="text-4xl font-bold mb-1">Sign Up To</h2>
-              <p className="text-2xl font-light mb-2">Lorem Ipsum is simply</p>
-              <p className="text-sm max-w-xs">Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s,</p>
+              <p className="text-2xl font-light mb-2">Zumar Garmen</p>
+              <p className="text-sm max-w-xs">Daftarkan akun Anda sekarang untuk menikmati pengalaman belanja mudah, cepat, dan produk konveksi unggulan dari Zumar Garmen Indonesia.</p>
             </div>
           </div>
           {/* Image */}

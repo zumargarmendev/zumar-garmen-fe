@@ -15,14 +15,14 @@ const homeSlides = [
   {
     id: 1,
     title: "We\nMake Idea\nYou Can Wear",
-    description: "Lorem ipsum dolor sit amet consectetur. Non sed commodo sed fermentum aliquam vulputate volutpat tortor hac.",
+    description: "Temukan koleksi terbaik yang dirancang untuk membuat Anda terlihat percaya diri kapan saja.",
     cta: "Shop Now",
     image: sliderImage1,
   },
   {
     id: 2,
-    title: "Slide Kedua",
-    description: "Deskripsi slide kedua",
+    title: "Menghadirkan\nDesain Berkualitas",
+    description: "Kami menghadirkan pilihan fashion yang modern, berkarakter, dan siap melengkapi keseharian Anda.",
     cta: "Get Started",
     image: sliderImage1,
   },
@@ -189,7 +189,7 @@ export default function Home() {
   // Data kategori (urutan: Fashion, Medis, Casual, Non Medis)
   const categories = [
     {
-      title: "Fashion",
+      title: "Produk Busana Muslim",
       img: "https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&w=400&q=80",
       desc: "Lihat",
     },
@@ -199,12 +199,12 @@ export default function Home() {
       desc: "Lihat",
     },
     {
-      title: "Casual",
+      title: "Produk Apparel",
       img: "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=400&q=80",
       desc: "Lihat",
     },
     {
-      title: "Non Medis",
+      title: "Produk Non Apparel",
       img: "https://images.unsplash.com/photo-1567401893414-76b7b1e5a7a5?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
       desc: "Lihat",
     },
@@ -282,9 +282,9 @@ export default function Home() {
                 <img src={secondaryLogo} alt="Zumar Garment" className="w-16 sm:w-20 md:w-24 h-auto ml-2 sm:ml-4" />
               </div>
               <p className="text-gray-600 font-montserrat text-xs sm:text-sm md:text-base leading-relaxed mt-2">
-                Lorem ipsum dolor sit amet consectetur. Mauris volutpat posuere vel nunc. In aliquet vitae urna libero. Id feugiat libero at lacinia cras placerat. Turpis proin mattis donec in pellentesque malesuada commodo. At ante et tellus eu quisque. Cras ipsum diam aliquam justo. Aliquet faucibus consequat augue vestibulum cras. 
+                CV Zumar Garmen Indonesia adalah perusahaan yang bergerak di bidang jasa, perdagangan, dan industri konveksi. Berdiri sejak 1977 dengan nama “Puspa Sari”, perusahaan ini terus berkembang mengikuti perubahan zaman hingga menjadi pemain kuat di pasar domestik dan internasional. Meski sempat terdampak krisis ekonomi 1998 dan pandemi COVID-19, perusahaan mampu bertahan melalui inovasi dan digitalisasi di bidang produksi, manajemen, serta pemasaran.
                 <br /><br />
-                Venenatis gravida tellus amet gravida sollicitudin consequat vel cras id. Pellentesque cursus tempus non arcu est. Egestas sagittis amet quam dictum id nullam sit. Nulla tristique urna gravida lectus. Est urna id tellus nisi. Placerat nunc molestie accumsan maecenas ultrices cursus amet tellus ut. Sagittis massa sit velit aliquam. Faucibus enim dignissim ligula scelerisque egestas.
+                Kini, CV Zumar Garmen Indonesia dikenal sebagai produsen pakaian berkualitas tinggi seperti seragam kerja, pakaian olahraga, dan fashion casual, dengan komitmen pada kepuasan pelanggan, integritas, serta ketepatan waktu.
               </p>
             </article>
           </div>
@@ -305,7 +305,7 @@ export default function Home() {
           </header>
           {/* Deskripsi */}
           <p className="text-center text-gray-500 font-montserrat font-light mb-6 text-sm md:text-base">
-            Lorem ipsum dolor sit amet consectetur. Non sed commodo sed fermentum aliquam vulputate volutpat tortor hac.
+            Lihat berbagai kategori produk yang bisa Anda pilih sesuai kebutuhan.
           </p>
           {/* Expanding Card Grid */}
           <div className="flex gap-4 w-full max-w-5xl mx-auto mb-10" role="list" aria-label="Production categories">
@@ -384,7 +384,7 @@ export default function Home() {
                   <h3 className="font-bold text-primaryColor text-lg md:text-xl">Jahit</h3>
                 </div>
                 <p className="text-gray-500 text-sm md:text-base pl-12">
-                  Lorem ipsum dolor sit amet consectetur. Tellus diam dignissim imperdiet imperdiet. Phasellus massa ut morbi diam augue. Rhoncus porttitor faucibus arcu gravida cum augue.
+                  Setiap jahitan kami dibuat dengan teliti dan rapi oleh tim profesional. Hasilnya? Pakaian yang kuat, nyaman dipakai, dan tampil stylish di setiap kesempatan.
                 </p>
 
                 {/* Item 2 */}
@@ -393,7 +393,7 @@ export default function Home() {
                   <h3 className="font-bold text-primaryColor text-lg md:text-xl">Bordir</h3>
                 </div>
                 <p className="text-gray-500 text-sm md:text-base pl-12">
-                  Lorem ipsum dolor sit amet consectetur. Tellus diam dignissim imperdiet imperdiet. Phasellus massa ut morbi diam augue. Rhoncus porttitor faucibus arcu gravida cum augue. Mauris scelerisque magna feugiat orci orci vestibulum vel nunc aliquam.
+                Bordir jadi ciri khas kami! Dengan teknologi modern dan detail presisi, hasilnya tampak mewah, selegan, dan pastinya bikin tampilanmu makin keren.
                 </p>
 
                 {/* Item 3 */}
@@ -402,7 +402,7 @@ export default function Home() {
                   <h3 className="font-bold text-primaryColor text-lg md:text-xl">Inovasi</h3>
                 </div>
                 <p className="text-gray-500 text-sm md:text-base pl-12">
-                  Lorem ipsum dolor sit amet consectetur. Tellus diam dignissim imperdiet imperdiet. Phasellus massa ut morbi diam augue
+                Kami selalu berinovasi agar produk tetap up-to-date. Dari desain, bahan, hingga teknik produksi — semua kami kembangkan untuk memenuhi kebutuhan dan selera pelanggan masa kini.
                 </p>
               </div>
             </article>
@@ -426,25 +426,25 @@ export default function Home() {
             <div className="absolute font-inter inset-0 flex flex-row items-center justify-center gap-8 md:gap-44" role="list" aria-label="Company statistics">
               <div className="text-center" role="listitem">
                 <div className="text-3xl md:text-4xl font-bold text-white">
-                  <AnimatedCounter to={2017} duration={1200} start={statInView} />
+                  <AnimatedCounter to={1977} duration={1200} start={statInView} />
                 </div>
                 <div className="text-lg md:text-xl text-white/80">Founded</div>
               </div>
               <div className="text-center" role="listitem">
                 <div className="text-3xl md:text-4xl font-bold text-white">
-                  <AnimatedCounter to={134} duration={1200} start={statInView} />
+                  <AnimatedCounter to={634} duration={1200} start={statInView} />
                 </div>
                 <div className="text-lg md:text-xl text-white/80">Clients</div>
               </div>
               <div className="text-center" role="listitem">
                 <div className="text-3xl md:text-4xl font-bold text-white">
-                  <AnimatedCounter to={729} duration={1200} start={statInView} />
+                  <AnimatedCounter to={752} duration={1200} start={statInView} />
                 </div>
                 <div className="text-lg md:text-xl text-white/80">Projects done</div>
               </div>
               <div className="text-center" role="listitem">
                 <div className="text-3xl md:text-4xl font-bold text-white">
-                  <AnimatedCounter to={103} duration={1200} start={statInView} />
+                  <AnimatedCounter to={580} duration={1200} start={statInView} />
                 </div>
                 <div className="text-lg md:text-xl text-white/80">5-Stars Review</div>
               </div>
@@ -464,7 +464,7 @@ export default function Home() {
             </SectionTitle>
             <img src={primaryLogoOrange} alt="Zumar Garment" className="w-auto h-11 mx-auto mb-6" />
             <p className="text-gray-600 text-sm md:text-base leading-relaxed mb-12">
-              Lorem ipsum dolor sit amet consectetur. Mauris volutpat posuere vel nunc. In aliquet vitae urna libero. Id feugiat libero at lacinia cras placerat. Turpis proin mattis donec in pellentesque malesuada commodo. At ante et tellus eu quisque. Cras ipsum diam aliquam justo. Aliquet faucibus consequat augue vestibulum cras. Venenatis gravida tellus amet gravida sollicitudin consequat vel cras id. Pellentesque cursus tempus non arcu est.
+            Zumar Garmen Indonesia bangga menjadi mitra berbagai perusahaan besar, baik dalam maupun luar negeri. Melalui kerja sama ini, kami menghadirkan produk konveksi berkualitas tinggi yang mendukung kebutuhan korporasi, event, dan brand fashion ternama. Kepercayaan mereka menjadi bukti komitmen kami dalam memberikan layanan terbaik dan hasil yang memuaskan.
             </p>
             <CompanyLogoMarquee
               logos={[
@@ -505,12 +505,12 @@ export default function Home() {
                   <span className="text-primaryColor">ZUMAR </span> <span className="text-secondaryColor">GARMENT</span>
                 </p>
                 <h2 id="video-heading" className="text-2xl font-bold text-primaryColor font-montserrat leading-tight">
-                  Lorem ipsum dolor sit amet consectetur.
+                  Your wishes are my stitches.
                 </h2>
               </div>
               <div className="md:w-1/2 md:pl-8 mt-4 md:mt-0 font-montserrat">
                 <p className="text-primaryColor text-sm md:text-base leading-relaxed">
-                  Lorem ipsum dolor sit amet consectetur. Mi convallis in vivamus in mattis congue nulla.
+                Dari seragam kerja hingga fashion casual, semua kami buat dengan penuh ketelitian dan cinta. Tetap terhubung dengan Zumar Garmen Indonesia dan temukan inspirasi gaya terbaikmu di sini!.
                 </p>
               </div>
             </div>

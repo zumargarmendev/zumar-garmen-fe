@@ -902,8 +902,7 @@ export default function Order() {
                 Kamu
               </h1>
               <p className="text-[#D9D9D9] text-base max-w-md font-montserrat text-left">
-                Lorem ipsum dolor sit amet consectetur. Non sed commodo sed
-                fermentum aliquam vulputate volutpat tortor hac.
+              Punya ide seragam, outfit kerja, atau pakaian custom? Tulis aja di sini! Kami bantu bikin sesuai selera dan kebutuhan kamu, cepat dan berkualitas.
               </p>
             </div>
           </div>

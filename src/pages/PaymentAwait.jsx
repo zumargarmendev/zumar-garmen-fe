@@ -120,7 +120,7 @@ export default function PaymentAwait() {
                 Mohon<br />Tunggu<br />Sebentar
               </h1>
               <p className="text-gray-400 text-xs md:text-sm max-w-xs mb-4 w-full font-montserrat">
-                Lorem ipsum dolor sit amet consectetur. Non sed commodo sed fermentum aliquam vulputate volutpat tortor hac.
+                Tim kami sedang menyiapkan data dan detail pesanan Anda. Kami pastikan setiap langkah dilakukan dengan presisi dan ketelitian.
               </p>
               {/* Spinner */}
               <div className="flex justify-center w-full mt-2">
