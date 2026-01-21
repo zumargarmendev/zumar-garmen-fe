@@ -4,8 +4,14 @@ export const getDashboardDataAuto = (params) => {
   return api.get("/api/dashboard/get-auto", { params });
 };
 
-export const getDashboardRankUserOrderData = (params) => {
-  return api.get("/api/dashboard/rank-user-order", { params });
+// Old rank-user-order
+// export const getDashboardRankUserOrderData = (params) => {
+//   return api.get("/api/dashboard/rank-user-order", { params });
+// };
+
+// Rank users by purchase value
+export const getDashboardRankUserPurchaseData = (params) => {
+  return api.get("/api/dashboard/rank-user-purchase", { params });
 };
 
 export const getCatalogueCategoryResume = (params) => {

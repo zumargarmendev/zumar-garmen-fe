@@ -1,12 +1,13 @@
 import AdminSidebar from '../../components/AdminSidebar';
 import AdminNavbar from '../../components/AdminNavbar';
-import { hasPermission } from '../../../api/auth';
+import { hasPermission, hasAnyRole, getCurrentUserRole } from '../../../api/auth';
 import React, { useCallback, useEffect, useState, useRef } from 'react';
-import { MagnifyingGlassIcon, PlusIcon, XCircleIcon, ChevronDownIcon } from '@heroicons/react/24/solid';
-import { getInventorySubCategories, createInventorySubCategory, updateInventorySubCategory, deleteInventorySubCategory } from '../../../api/Inventory/inventorySubCategory';
+import { MagnifyingGlassIcon, PlusIcon, XCircleIcon, ChevronDownIcon, ArrowUpTrayIcon } from '@heroicons/react/24/solid';
+import { getInventorySubCategories, createInventorySubCategory, updateInventorySubCategory, deleteInventorySubCategory, downloadInventorySubCategoryTemplate, massUploadInventorySubCategory } from '../../../api/Inventory/inventorySubCategory';
 import { getInventoryCategories } from '../../../api/Inventory/inventoryCategory';
 import { Menu } from '@headlessui/react';
 import BackgroundImage from '../../../assets/background/bg-zumar.png';
+import MassUploadModal from '../../components/MassUploadModal';
 
 const PAGE_LIMIT = 10;
 
@@ -112,6 +113,7 @@ const SubCategoryList = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showMassUploadModal, setShowMassUploadModal] = useState(false);
 
   // Form states
   const [newSubCategoryName, setNewSubCategoryName] = useState('');
@@ -362,6 +364,24 @@ const SubCategoryList = () => {
             )}
           </form>
 
+          {/* Mass Upload Button */}
+          {(() => {
+            const userRole = getCurrentUserRole();
+            console.log('SubCategory - Current Role:', userRole);
+            return true;
+          })() && (
+            <div className="mt-4">
+              <button
+                type="button"
+                className="bg-[#295B5B] hover:bg-[#1e4545] text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 transition-colors"
+                onClick={() => setShowMassUploadModal(true)}
+              >
+                <ArrowUpTrayIcon className="w-5 h-5" />
+                Mass Upload Sub Kategori
+              </button>
+            </div>
+          )}
+
           <div className="bg-gray-100 rounded-xl shadow p-4 mt-6">
             {loading ? (
               <div className="text-center py-8 text-primaryColor font-semibold">Loading...</div>
@@ -590,6 +610,19 @@ const SubCategoryList = () => {
               </div>
             </div>
           )}
+
+          {/* Mass Upload Modal */}
+          <MassUploadModal
+            isOpen={showMassUploadModal}
+            onClose={() => setShowMassUploadModal(false)}
+            onDownloadTemplate={downloadInventorySubCategoryTemplate}
+            onUpload={massUploadInventorySubCategory}
+            title="Mass Upload Sub Kategori Inventory"
+            templateFileName="Inventory_Subcategory_Upload_Template.xlsx"
+            onUploadSuccess={() => {
+              fetchSubCategories(page);
+            }}
+          />
         </div>
       </div>
     </div>

@@ -30,4 +30,21 @@ export const updateInventorySubCategory = (isId, data) => {
 
 export const deleteInventorySubCategory = (isId) => {
   return api.delete('/api/inventory-subcategory', { params: { isId } });
+};
+
+export const downloadInventorySubCategoryTemplate = () => {
+  return api.get('/api/inventory-subcategory/template', {
+    responseType: 'blob',
+  });
+};
+
+export const massUploadInventorySubCategory = (file) => {
+  const formData = new FormData();
+  formData.append('File', file);
+
+  return api.post('/api/inventory-subcategory/mass-upload', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
 }; 

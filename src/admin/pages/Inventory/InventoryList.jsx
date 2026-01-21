@@ -1,15 +1,16 @@
 import React, { useCallback, useEffect, useState, useRef } from 'react';
-import { MagnifyingGlassIcon, PlusIcon, XCircleIcon, ChevronDownIcon } from '@heroicons/react/24/solid';
+import { MagnifyingGlassIcon, PlusIcon, XCircleIcon, ChevronDownIcon, ArrowUpTrayIcon } from '@heroicons/react/24/solid';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { getInventories, deleteInventory } from '../../../api/Inventory/inventory';
+import { getInventories, deleteInventory, downloadInventoryTemplate, massUploadInventory } from '../../../api/Inventory/inventory';
 import { createInventoryRelocation } from '../../../api/Inventory/inventoryRelocation';
 import { getInventoryCategories } from '../../../api/Inventory/inventoryCategory';
 import { getInventorySubCategories } from '../../../api/Inventory/inventorySubCategory';
 import { getWarehouses } from '../../../api/Inventory/inventoryWarehouse';
 import AdminSidebar from '../../components/AdminSidebar';
 import AdminNavbar from '../../components/AdminNavbar';
-import { hasPermission } from '../../../api/auth';
+import { hasPermission, hasAnyRole, getCurrentUserRole } from '../../../api/auth';
 import BackgroundImage from '../../../assets/background/bg-zumar.png';
+import MassUploadModal from '../../components/MassUploadModal';
 
 const PAGE_LIMIT = 10;
 
@@ -186,6 +187,7 @@ const InventoryList = () => {
 
   // Modal states
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showMassUploadModal, setShowMassUploadModal] = useState(false);
 
   // Form states
   const [deletingInventory, setDeletingInventory] = useState(null);
@@ -571,6 +573,24 @@ const InventoryList = () => {
             )}
           </div>
 
+          {/* Mass Upload Button */}
+          {(() => {
+            const userRole = getCurrentUserRole();
+            console.log('Inventory - Current Role:', userRole);
+            return true;
+          })() && (
+            <div className="mt-4">
+              <button
+                type="button"
+                className="bg-[#295B5B] hover:bg-[#1e4545] text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 transition-colors"
+                onClick={() => setShowMassUploadModal(true)}
+              >
+                <ArrowUpTrayIcon className="w-5 h-5" />
+                Mass Upload Inventory
+              </button>
+            </div>
+          )}
+
           <div className="bg-gray-100 rounded-xl shadow p-4 mt-6 overflow-x-auto font-montserrat">
             {loading ? (
               <div className="text-center py-8 text-primaryColor font-semibold">Loading...</div>
@@ -765,6 +785,19 @@ const InventoryList = () => {
               </div>
             </div>
           )}
+
+          {/* Mass Upload Modal */}
+          <MassUploadModal
+            isOpen={showMassUploadModal}
+            onClose={() => setShowMassUploadModal(false)}
+            onDownloadTemplate={downloadInventoryTemplate}
+            onUpload={massUploadInventory}
+            title="Mass Upload Inventory"
+            templateFileName="Inventory_Upload_Template.xlsx"
+            onUploadSuccess={() => {
+              fetchData(page, search, selectedCategory, selectedSubCategory);
+            }}
+          />
         </div>
       </div>
     </div>

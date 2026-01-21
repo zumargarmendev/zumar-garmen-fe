@@ -33,4 +33,21 @@ export const updateInventory = (iId, data) => {
 
 export const deleteInventory = (iId) => {
   return api.delete('/api/inventory', { params: { iId } });
+};
+
+export const downloadInventoryTemplate = () => {
+  return api.get('/api/inventory/template', {
+    responseType: 'blob',
+  });
+};
+
+export const massUploadInventory = (file) => {
+  const formData = new FormData();
+  formData.append('File', file);
+
+  return api.post('/api/inventory/mass-upload', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
 }; 

@@ -1,10 +1,17 @@
 import React from "react";
-import { FaAward, FaTrophy } from "react-icons/fa";
-import { GiMedal } from "react-icons/gi";
-import { getDashboardRankUserOrderData } from "../../../api/dasboard";
+import { getDashboardRankUserPurchaseData } from "../../../api/dasboard";
 import SilverMedal from "../../../assets/rank-2.png";
 import GoldMedal from "../../../assets/rank-1.png";
 import BronzeMedal from "../../../assets/rank-3.png";
+
+const formatRupiah = (amount) => {
+  if (!amount && amount !== 0) return "Rp 0";
+  return new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    minimumFractionDigits: 0
+  }).format(amount);
+};
 
 export function TopMostOrderedClients({ filterDateStart, filterDateEnd }) {
   const [isLoading, setIsLoading] = React.useState(false);
@@ -16,11 +23,11 @@ export function TopMostOrderedClients({ filterDateStart, filterDateEnd }) {
       setIsLoading(true);
       setError(null);
 
-      const response = await getDashboardRankUserOrderData({
+      const response = await getDashboardRankUserPurchaseData({
           filterDateStart,
           filterDateEnd,
         });
-      console.debug("Dashboard Data:", response.data.data);
+      console.debug("Dashboard Rank User Purchase Data:", response.data.data);
 
       setData(response.data.data);
     } catch (error) {
@@ -54,22 +61,22 @@ export function TopMostOrderedClients({ filterDateStart, filterDateEnd }) {
     ?.map((client, index) => ({
       rank: index + 1,
       name: client.uName,
-      order: client.totOrder,
+      purchase: formatRupiah(client.totPurchase),
     }))
-    .slice(3); //
+    .slice(3);
 
   const top3Clients = data
     .map((client, index) => ({
       rank: index + 1,
       name: client.uName,
-      order: client.totOrder,
+      purchase: formatRupiah(client.totPurchase),
     }))
-    .slice(0, 3); // Get top 3 clients
+    .slice(0, 3);
 
   return (
     <div className="bg-gray-100 rounded-xl shadow p-6 mb-8 bg">
       <h2 className="text-2xl font-bold text-primaryColor text-center mb-8 tracking-wide font-montserrat">
-        TOP KLIEN TERBANYAK ORDER
+        TOP KLIEN BERDASARKAN NILAI PEMBELIAN
       </h2>
       <div className="flex flex-col lg:flex-row gap-8 items-end justify-center w-full mb-8">
         {/* 3 Top Clients */}
@@ -112,8 +119,8 @@ export function TopMostOrderedClients({ filterDateStart, filterDateEnd }) {
                 <p className="font-semibold text-[#8C8787] text-sm text-center">
                   {top3Clients[1]?.name || "Alesco"}
                 </p>
-                <p className="font-semibold text-[#8C8787] text-sm mt-1 text-center">
-                  {top3Clients[1]?.order || "3.133.144.012"}
+                <p className="font-semibold text-[#8C8787] text-xs mt-1 text-center">
+                  {top3Clients[1]?.purchase || "Rp 0"}
                 </p>
               </div>
             </div>
@@ -156,8 +163,8 @@ export function TopMostOrderedClients({ filterDateStart, filterDateEnd }) {
                 <p className="font-semibold text-[#A97D00] text-sm text-center">
                   {top3Clients[0]?.name || "Alesco"}
                 </p>
-                <p className="font-semibold text-[#A97D00] text-sm mt-1 text-center">
-                  {top3Clients[0]?.order || "3.233.144.012"}
+                <p className="font-semibold text-[#A97D00] text-xs mt-1 text-center">
+                  {top3Clients[0]?.purchase || "Rp 0"}
                 </p>
               </div>
             </div>
@@ -200,8 +207,8 @@ export function TopMostOrderedClients({ filterDateStart, filterDateEnd }) {
                 <p className="font-semibold text-[#994B00] text-sm text-center">
                   {top3Clients[2]?.name || "Alesco"}
                 </p>
-                <p className="font-semibold text-[#994B00] text-sm mt-1 text-center">
-                  {top3Clients[2]?.order || "3.033.144.012"}
+                <p className="font-semibold text-[#994B00] text-xs mt-1 text-center">
+                  {top3Clients[2]?.purchase || "Rp 0"}
                 </p>
               </div>
             </div>
@@ -214,7 +221,7 @@ export function TopMostOrderedClients({ filterDateStart, filterDateEnd }) {
               <tr className="bg-gray-50 text-gray-500 text-left">
                 <th className="py-2 px-4">Rank</th>
                 <th className="py-2 px-4">Nama Klien</th>
-                <th className="py-2 px-4">Order</th>
+                <th className="py-2 px-4">Total Pembelian</th>
               </tr>
             </thead>
             <tbody>
@@ -225,7 +232,7 @@ export function TopMostOrderedClients({ filterDateStart, filterDateEnd }) {
                   </td>
                   <td className="py-2 px-4 text-gray-700">{row.name}</td>
                   <td className="py-2 px-4 font-bold text-green-700">
-                    {row.order}
+                    {row.purchase}
                   </td>
                 </tr>
               ))}
