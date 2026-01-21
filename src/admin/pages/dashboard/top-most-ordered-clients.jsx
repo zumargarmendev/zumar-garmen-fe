@@ -4,6 +4,7 @@ import SilverMedal from "../../../assets/rank-2.png";
 import GoldMedal from "../../../assets/rank-1.png";
 import BronzeMedal from "../../../assets/rank-3.png";
 
+// Helper function to format Rupiah
 const formatRupiah = (amount) => {
   if (!amount && amount !== 0) return "Rp 0";
   return new Intl.NumberFormat('id-ID', {
@@ -23,9 +24,16 @@ export function TopMostOrderedClients({ filterDateStart, filterDateEnd }) {
       setIsLoading(true);
       setError(null);
 
+      const formattedStartDate = filterDateStart
+        ? `${filterDateStart}T00:00:00`
+        : undefined;
+      const formattedEndDate = filterDateEnd
+        ? `${filterDateEnd}T23:59:59`
+        : undefined;
+
       const response = await getDashboardRankUserPurchaseData({
-          filterDateStart,
-          filterDateEnd,
+          filterDateStart: formattedStartDate,
+          filterDateEnd: formattedEndDate,
         });
       console.debug("Dashboard Rank User Purchase Data:", response.data.data);
 
@@ -63,7 +71,7 @@ export function TopMostOrderedClients({ filterDateStart, filterDateEnd }) {
       name: client.uName,
       purchase: formatRupiah(client.totPurchase),
     }))
-    .slice(3);
+    .slice(3); //
 
   const top3Clients = data
     .map((client, index) => ({
@@ -71,7 +79,7 @@ export function TopMostOrderedClients({ filterDateStart, filterDateEnd }) {
       name: client.uName,
       purchase: formatRupiah(client.totPurchase),
     }))
-    .slice(0, 3);
+    .slice(0, 3); // Get top 3 clients
 
   return (
     <div className="bg-gray-100 rounded-xl shadow p-6 mb-8 bg">
