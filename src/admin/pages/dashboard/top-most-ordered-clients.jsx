@@ -24,18 +24,10 @@ export function TopMostOrderedClients({ filterDateStart, filterDateEnd }) {
       setIsLoading(true);
       setError(null);
 
-      const formattedStartDate = filterDateStart
-        ? `${filterDateStart}T00:00:00`
-        : undefined;
-      const formattedEndDate = filterDateEnd
-        ? `${filterDateEnd}T23:59:59`
-        : undefined;
-
       const response = await getDashboardRankUserPurchaseData({
-          filterDateStart: formattedStartDate,
-          filterDateEnd: formattedEndDate,
+          filterDateStart,
+          filterDateEnd,
         });
-      console.debug("Dashboard Rank User Purchase Data:", response.data.data);
 
       setData(response.data.data);
     } catch (error) {
@@ -62,7 +54,14 @@ export function TopMostOrderedClients({ filterDateStart, filterDateEnd }) {
   }
 
   if (!data || data.length === 0) {
-    return <div>Tidak ada data tersedia</div>;
+    return (
+      <div className="bg-gray-100 rounded-xl shadow p-6 mb-8">
+        <h2 className="text-2xl font-bold text-primaryColor text-center mb-4 tracking-wide font-montserrat">
+          TOP KLIEN BERDASARKAN NILAI PEMBELIAN
+        </h2>
+        <p className="text-center text-gray-500">Tidak ada data tersedia untuk periode yang dipilih</p>
+      </div>
+    );
   }
 
   const topClientsTable = data
