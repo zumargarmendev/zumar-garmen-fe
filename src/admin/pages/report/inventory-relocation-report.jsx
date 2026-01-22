@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import BackgroundImage from "../../../assets/background/bg-zumar.png";
 import AdminNavbar from "../../components/AdminNavbar";
 import AdminSidebar from "../../components/AdminSidebar";
+import Pagination from "../../components/Pagination";
 import DateRangeFilterReport from "../../../components/date-range-filter-report";
 import { generateInventoryRelocationReport } from "../../../utils/pdfGenerator";
 import { getInventoryRelocations } from "../../../api/Inventory/inventoryRelocation";
@@ -398,33 +399,12 @@ const InventoryRelocationReport = () => {
             )}
           </div>
 
-          {/* Pagination */}
           {userHasSelectedDate && relocations.length > 0 && (
-            <div className="flex justify-center items-center gap-2 mt-6">
-              <button
-                className="px-3 py-1 rounded border border-gray-300 text-primaryColor disabled:opacity-50"
-                onClick={() => handlePageChange(page - 1)}
-                disabled={page === 1}
-              >
-                {'<'}
-              </button>
-              {Array.from({ length: totalPage }, (_, i) => i + 1).map((p) => (
-                <button
-                  key={p}
-                  className={`px-3 py-1 rounded border text-primaryColor font-semibold ${p === page ? 'bg-primaryColor text-white' : 'border-gray-300'}`}
-                  onClick={() => handlePageChange(p)}
-                >
-                  {p}
-                </button>
-              ))}
-              <button
-                className="px-3 py-1 rounded border border-gray-300 text-primaryColor disabled:opacity-50"
-                onClick={() => handlePageChange(page + 1)}
-                disabled={page === totalPage}
-              >
-                {'>'}
-              </button>
-            </div>
+            <Pagination
+              currentPage={page}
+              totalPages={totalPage}
+              onPageChange={handlePageChange}
+            />
           )}
         </div>
       </div>

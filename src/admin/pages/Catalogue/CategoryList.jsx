@@ -3,6 +3,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { createCatalogueCategory, deleteCatalogueCategory, getCatalogueCategories, updateCatalogueCategory } from '../../../api/Catalogue/catalogueCategory';
 import AdminNavbar from '../../components/AdminNavbar';
 import AdminSidebar from '../../components/AdminSidebar';
+import Pagination from '../../components/Pagination';
 import { hasPermission } from '../../../api/auth';
 import BackgroundImage from '../../../assets/background/bg-zumar.png';
 
@@ -306,32 +307,11 @@ const CategoryList = () => {
             )}
           </div>
 
-          {/* Pagination */}
-          <div className="flex justify-center items-center gap-2 mt-6">
-            <button
-              className="px-3 py-1 rounded border border-gray-300 text-primaryColor disabled:opacity-50"
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page === 1}
-            >
-              {'<'}
-            </button>
-            {Array.from({ length: totalPage }, (_, i) => i + 1).map((p) => (
-              <button
-                key={p}
-                className={`px-3 py-1 rounded border text-primaryColor font-semibold ${p === page ? 'bg-primaryColor text-white' : 'border-gray-300'}`}
-                onClick={() => setPage(p)}
-              >
-                {p}
-              </button>
-            ))}
-            <button
-              className="px-3 py-1 rounded border border-gray-300 text-primaryColor disabled:opacity-50"
-              onClick={() => setPage((p) => Math.min(totalPage, p + 1))}
-              disabled={page === totalPage}
-            >
-              {'>'}
-            </button>
-          </div>
+          <Pagination
+            currentPage={page}
+            totalPages={totalPage}
+            onPageChange={setPage}
+          />
 
           {/* Add Modal */}
           {showAddModal && (

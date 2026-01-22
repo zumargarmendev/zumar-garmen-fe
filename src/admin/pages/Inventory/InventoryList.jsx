@@ -8,6 +8,7 @@ import { getInventorySubCategories } from '../../../api/Inventory/inventorySubCa
 import { getWarehouses } from '../../../api/Inventory/inventoryWarehouse';
 import AdminSidebar from '../../components/AdminSidebar';
 import AdminNavbar from '../../components/AdminNavbar';
+import Pagination from '../../components/Pagination';
 import { hasPermission, hasAnyRole, getCurrentUserRole } from '../../../api/auth';
 import BackgroundImage from '../../../assets/background/bg-zumar.png';
 import MassUploadModal from '../../components/MassUploadModal';
@@ -573,10 +574,12 @@ const InventoryList = () => {
             )}
           </div>
 
-          {/* Mass Upload Button */}
+          {/* Mass Upload Button - Temporary: All users can access for testing */}
           {(() => {
+            // Debug: Log current user role
             const userRole = getCurrentUserRole();
             console.log('Inventory - Current Role:', userRole);
+            // Temporary: Allow all roles for testing
             return true;
           })() && (
             <div className="mt-4">
@@ -641,32 +644,11 @@ const InventoryList = () => {
             )}
           </div>
 
-          {/* Pagination */}
-          <div className="flex justify-center items-center gap-2 mt-6">
-            <button
-              className="px-3 py-1 rounded border border-gray-300 text-primaryColor disabled:opacity-50"
-              onClick={() => handlePageChange(page - 1)}
-              disabled={page === 1}
-            >
-              {'<'}
-            </button>
-            {Array.from({ length: totalPage }, (_, i) => i + 1).map((p) => (
-              <button
-                key={p}
-                className={`px-3 py-1 rounded border text-primaryColor font-semibold ${p === page ? 'bg-primaryColor text-white' : 'border-gray-300'}`}
-                onClick={() => handlePageChange(p)}
-              >
-                {p}
-              </button>
-            ))}
-            <button
-              className="px-3 py-1 rounded border border-gray-300 text-primaryColor disabled:opacity-50"
-              onClick={() => handlePageChange(page + 1)}
-              disabled={page === totalPage}
-            >
-              {'>'}
-            </button>
-          </div>
+          <Pagination
+            currentPage={page}
+            totalPages={totalPage}
+            onPageChange={handlePageChange}
+          />
 
           {/* Delete Confirmation Modal */}
           {showDeleteModal && (
@@ -795,6 +777,7 @@ const InventoryList = () => {
             title="Mass Upload Inventory"
             templateFileName="Inventory_Upload_Template.xlsx"
             onUploadSuccess={() => {
+              // Refresh list after successful upload
               fetchData(page, search, selectedCategory, selectedSubCategory);
             }}
           />
