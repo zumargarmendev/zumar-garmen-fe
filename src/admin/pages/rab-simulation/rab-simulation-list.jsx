@@ -14,11 +14,9 @@ import {
   deleteDummyOrderCostBudgetPlanSummary,
   getDummyOrderCostBudgetPlanSummaryList,
 } from "../../../api/rab-simulation/rab-simulation";
-import { RAB_SIMULATION_DUMMY_DATA } from "../../../data/rab-simulations";
 import { formatCurrency } from "../../../utils";
 import AdminNavbar from "../../components/AdminNavbar";
 import AdminSidebar from "../../components/AdminSidebar";
-import Pagination from "../../components/Pagination";
 import { hasPermission } from '../../../api/auth';
 import BackgroundImage from '../../../assets/background/bg-zumar.png';
 
@@ -98,8 +96,6 @@ export default function RabSimulationList() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  // const [page, setPage] = useState(1);
-  // const [totalPage, setTotalPage] = useState(1);
   const [simulations, setSimulations] = useState([]);
   const navigate = useNavigate();
 
@@ -407,11 +403,8 @@ export default function RabSimulationList() {
             )}
           </div>
 
-          <Pagination
-            currentPage={page}
-            totalPages={totalPage}
-            onPageChange={handlePageChange}
-          />
+          {/* Pagination not available - API does not support pagination */}
+          {/* To add pagination, update getDummyOrderCostBudgetPlanSummaryList API to accept pageLimit/pageNumber */}
 
           {/* Action Confirmation Modal */}
           {showActionModal && modalAction && (

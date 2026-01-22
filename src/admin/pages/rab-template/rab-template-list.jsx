@@ -96,6 +96,9 @@ export default function RABTemplateList() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [templates, setTemplates] = useState([]);
+  const [page, setPage] = useState(1);
+  const [totalPage, setTotalPage] = useState(1);
+  const PAGE_LIMIT = 10;
   const navigate = useNavigate();
 
   const [showActionModal, setShowActionModal] = useState(false);
@@ -104,24 +107,28 @@ export default function RABTemplateList() {
   const [actionLoading, setActionLoading] = useState(false);
   const [actionError, setActionError] = useState("");
 
-  const fetchData = async () => {
+  const fetchData = async (goToPage = 1) => {
     try {
       setLoading(true);
       setError(null);
 
       const response = await getOperationalUtilityTemplateList({
-        pageLimit: -1,
-        pageNumber: 1,
+        pageLimit: PAGE_LIMIT,
+        pageNumber: goToPage,
       });
 
       const data = response.data.data.listData;
       setTemplates(data || []);
-      // setTotalPage(Math.ceil(data.length / 10)); // Assuming 10 items per page
+
+      // Extract pagination data
+      const pagination = response.data.pagination || response.data.data?.pagination || {};
+      const pageLast = pagination.pageLast || 1;
+      setTotalPage(Math.max(1, pageLast));
     } catch (error) {
       console.error("Error fetching data:", error);
       setError("Gagal memuat data. Silakan coba lagi.");
       setTemplates([]);
-      // setTotalPage(1);
+      setTotalPage(1);
     } finally {
       setLoading(false);
     }
@@ -171,7 +178,7 @@ export default function RABTemplateList() {
       setSelectedOrder(null);
       setModalAction(null);
 
-      await fetchData();
+      await fetchData(page);
     } catch (err) {
       console.error("Error performing action:", err);
       setActionError(err.message || "Failed to perform action");
@@ -180,9 +187,15 @@ export default function RABTemplateList() {
     }
   };
 
+  const handlePageChange = (newPage) => {
+    if (newPage >= 1 && newPage <= totalPage && newPage !== page) {
+      setPage(newPage);
+    }
+  };
+
   useEffect(() => {
-    fetchData();
-  }, []);
+    fetchData(page);
+  }, [page]);
 
   return (
     <div
@@ -352,11 +365,13 @@ export default function RABTemplateList() {
             )}
           </div>
 
-          <Pagination
-            currentPage={page}
-            totalPages={totalPage}
-            onPageChange={handlePageChange}
-          />
+          {totalPage > 1 && (
+            <Pagination
+              currentPage={page}
+              totalPages={totalPage}
+              onPageChange={handlePageChange}
+            />
+          )}
 
           {/* Action Confirmation Modal */}
           {showActionModal && modalAction && (
