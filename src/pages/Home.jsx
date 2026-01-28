@@ -193,22 +193,22 @@ export default function Home() {
   const categories = [
     {
       title: "Produk Busana Muslim",
-      img: "src/assets/image/Beranda_Sec_3_Busana Muslim.jpg",
+      img: "../assets/image/Beranda_Sec_3_Busana Muslim.jpg",
       desc: "Lihat",
     },
     {
       title: "Produk Kebutuhan Medis",
-      img: "src/assets/image/Beranda_Sec_3_Medis.jpg",
+      img: "../assets/image/Beranda_Sec_3_Medis.jpg",
       desc: "Lihat",
     },
     {
       title: "Produk Apparel",
-      img: "src/assets/image/Beranda_Sec_3_Apparel.jpg",
+      img: "../assets/image/Beranda_Sec_3_Apparel.jpg",
       desc: "Lihat",
     },
     {
       title: "Produk Non Apparel",
-      img: "src/assets/image/Beranda_Sec_3_Non Apparel.jpg",
+      img: "../assets/image/Beranda_Sec_3_Non Apparel.jpg",
       desc: "Lihat",
     },
   ];
