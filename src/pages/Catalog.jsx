@@ -1,5 +1,8 @@
 import Carousel from "../components/Carousel";
-import catalogImage from "../assets/Slider/img_slider1.png";
+import muslimImage from "../assets/Slider/Katalog_Sec_1_BM.jpg";
+import medisImage from "../assets/Slider/Katalog_Sec_1_Medis.jpg";
+import apparelImage from "../assets/Slider/Katalog_Sec_1_Apparel.jpg";
+import nonApparelImage from "../assets/Slider/Katalog_Sec_1_Non-Apparel.jpg";
 import secondaryLogoWhite from "../assets/Logo/secondary_logo_white.png";
 import StickyNavbar from "../components/Navbar";
 import Footer from "../components/Footer";
@@ -13,27 +16,27 @@ import BackgroundImage from '../assets/background/bg-zumar.png';
 const catalogSlides = [
   {
     id: 1,
-    title: "Produk\nBusana\nMuslim",
-    description: "Koleksi muslim yang stylish dan nyaman untuk menunjang tampilan harian maupun acara spesial.",
-    image: catalogImage,
+    title: "",
+    description: "",
+    image: muslimImage,
   },
   {
     id: 2,
-    title: "Produk\nKebutuhan\nMedis",
-    description: "Produk medis dengan standar keamanan, praktis, nyaman, dan tahan lama untuk kebutuhan klinik hingga rumah sakit.",
-    image: catalogImage,
+    title: "",
+    description: "",
+    image: medisImage,
   },
   {
     id: 3,
-    title: "Produk\nApparel",
-    description: "Pilihan apparel berkualitas untuk kebutuhan brand, komunitas, hingga event skala besar maupun kecil.",
-    image: catalogImage,
+    title: "",
+    description: "",
+    image: apparelImage,
   },
   {
     id: 4,
-    title: "Produk\nNon-Apparel",
-    description: "Pilihan produk fungsional dan tahan lama untuk menunjang berbagai aktivitas dan kebutuhan usaha.",
-    image: catalogImage,
+    title: "",
+    description: "",
+    image: nonApparelImage,
   },
   // Tambahkan slide lain jika perlu
 ];

@@ -40,17 +40,17 @@ function CustomDropdown({ label, options, value, onChange, placeholder, searchPl
   return (
     <div className="flex items-center w-auto">
       <span className="px-4 py-2 bg-[#295B5B] text-white font-bold rounded-l-xl border border-[#295B5B] border-r-0 text-base flex items-center justify-center" style={{height:height, minWidth: labelMinWidth, lineHeight:height}}>{label}</span>
-      <div className={`relative w-[${width}] md:w-[${mdWidth}]`}>
+      <div className="relative" style={{ width: width, minWidth: width, maxWidth: mdWidth }}>
         <button
           ref={btnRef}
           type="button"
           className="appearance-none w-full px-3 py-2 border border-[#295B5B] border-l-0 bg-white text-[#BDBDBD] font-semibold rounded-r-xl focus:outline-none focus:ring-2 focus:ring-secondaryColor h-[38px] text-sm flex items-center justify-between"
           onClick={() => setOpen(o => !o)}
         >
-          <span className={value ? 'text-black truncate' : 'text-[#BDBDBD]'}>
+          <span className={`${value ? 'text-black' : 'text-[#BDBDBD]'} truncate block flex-1 text-left mr-2`}>
             {value ? selectedOption?.label : placeholder}
           </span>
-          <ChevronDownIcon className="w-4 h-4 text-[#BDBDBD] ml-2" />
+          <ChevronDownIcon className="w-4 h-4 text-[#BDBDBD] flex-shrink-0" />
         </button>
         {open && (
           <div ref={dropdownRef} className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto focus:outline-none">

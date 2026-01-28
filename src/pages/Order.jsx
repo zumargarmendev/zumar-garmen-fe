@@ -22,6 +22,7 @@ import secondaryLogoWhite from "../assets/Logo/secondary_logo_white.png";
 import StickyNavbar from "../components/Navbar";
 import SearchableDropdown from "../components/SearchableDropdown";
 import { checkImageValidity } from "../utils";
+import orderImage from "../assets/Image/Pesan_Sec_1_Pic_1.jpg";
 
 // Size data akan di-fetch dari API
 
@@ -873,7 +874,7 @@ export default function Order() {
             zIndex: 10,
             transition: "top 0.3s, position 0.3s",
             backgroundImage:
-              "url(https://images.unsplash.com/photo-1532453288672-3a27e9be9efd?q=80&w=764&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D)",
+              `url(${orderImage})`,
             backgroundSize: "cover",
             backgroundPosition: "center",
           }}
@@ -888,22 +889,22 @@ export default function Order() {
           <div className="absolute inset-0 bg-black/60 rounded-tr-[30px] rounded-br-[30px] z-0" />
           {/* Konten teks di atas overlay */}
           <div className="relative z-10 flex flex-row items-start w-full">
-            <img
+            {/* <img
               src={secondaryLogoWhite}
               alt="Zumar Logo"
               className="w-56 max-w-[220px] flex-shrink-0 mr-10"
-            />
+            /> */}
             <div className="flex flex-col justify-center">
-              <h1 className="text-white text-5xl font-bold font-poppins leading-[1.1] mb-6 text-left">
+              {/* <h1 className="text-white text-5xl font-bold font-poppins leading-[1.1] mb-6 text-left">
                 Jelasin
                 <br />
                 Kebutuhan
                 <br />
                 Kamu
-              </h1>
-              <p className="text-[#D9D9D9] text-base max-w-md font-montserrat text-left">
+              </h1> */}
+              {/* <p className="text-[#D9D9D9] text-base max-w-md font-montserrat text-left">
               Punya ide seragam, outfit kerja, atau pakaian custom? Tulis aja di sini! Kami bantu bikin sesuai selera dan kebutuhan kamu, cepat dan berkualitas.
-              </p>
+              </p> */}
             </div>
           </div>
         </div>

@@ -36,15 +36,15 @@ export default function Carousel({ slides, rightContent, navigationPosition = "c
             <div className="absolute inset-0 bg-black/50 z-0" />
             <div className="max-w-7xl w-full mx-auto px-10 md:px-20 flex items-center h-full relative z-10">
               {/* Kiri: Teks */}
-              <div className="w-full md:w-1/2 text-white space-y-5 relative">
+              <div className="w-full md:w-1/2 text-white relative">
                 <h2 className="text-2xl md:text-5xl font-semibold font-poppins whitespace-pre-line leading-tight">
                   {slide.title}
                 </h2>
-                <p className="text-sm md:text-base max-w-md text-white font-montserrat font-light">
+                <p className="text-sm md:text-base max-w-md text-white font-montserrat font-light mt-5">
                   {slide.description}
                 </p>
                 {slide.cta && (
-                  <button className="mt-4 font-montserrat text-sm inline-block px-6 py-3 bg-primaryColor hover:bg-secondaryColor text-white rounded-full shadow-lg md:font-semibold">
+                  <button className="mt-40 font-montserrat text-sm inline-block px-6 py-3 bg-primaryColor hover:bg-secondaryColor text-white rounded-full shadow-lg md:font-semibold">
                     {slide.cta}
                   </button>
                 )}

@@ -63,7 +63,7 @@ export default function Sidebar({ onFilterChange, activeFilter }) {
       <div className="relative z-10">
         <h2 className="text-xl font-bold text-primaryColor mb-6 flex items-center gap-2">
           <div className="w-2 h-2 bg-gradient-to-r from-primaryColor to-secondaryColor rounded-full"></div>
-          Our Products
+          Produk Kami
         </h2>
         
         {loading ? (

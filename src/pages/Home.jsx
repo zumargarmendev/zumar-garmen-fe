@@ -9,29 +9,32 @@ import StickyNavbar from '../components/Navbar'
 import Carousel from "../components/Carousel";
 import Footer from "../components/Footer";
 import BackToTopButton from "../components/BackToTopButton";
-import sliderImage1 from "../assets/Slider/img_slider1.png";
+import sliderImage1 from "../assets/Slider/slider_1.jpg";
+import sliderImage2 from "../assets/Slider/slider_2.jpg";
+import sliderImage3 from "../assets/Slider/slider_3.jpg";
+import kenapaZumarImage from "../assets/Image/Beranda_Sec_2_Pic_4.jpg";
 
 const homeSlides = [
   {
     id: 1,
-    title: "We\nMake Idea\nYou Can Wear",
-    description: "Temukan koleksi terbaik yang dirancang untuk membuat Anda terlihat percaya diri kapan saja.",
-    cta: "Shop Now",
+    title: "",
+    description: "",
+    cta: "Pesan dulu aja",
     image: sliderImage1,
   },
   {
     id: 2,
-    title: "Menghadirkan\nDesain Berkualitas",
-    description: "Kami menghadirkan pilihan fashion yang modern, berkarakter, dan siap melengkapi keseharian Anda.",
-    cta: "Get Started",
-    image: sliderImage1,
+    title: "",
+    description: "",
+    cta: "Pesan Sekarang",
+    image: sliderImage2,
   },
   {
     id: 3,
-    title: "Slide Ketiga",
-    description: "Deskripsi slide ketiga",
-    cta: "Get Started",
-    image: sliderImage1,
+    title: "",
+    description: "",
+    cta: "Mulai Sekarang",
+    image: sliderImage3,
   },
 ];
 
@@ -190,22 +193,22 @@ export default function Home() {
   const categories = [
     {
       title: "Produk Busana Muslim",
-      img: "https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&w=400&q=80",
+      img: "src/assets/image/Beranda_Sec_3_Busana Muslim.jpg",
       desc: "Lihat",
     },
     {
       title: "Produk Kebutuhan Medis",
-      img: "https://plus.unsplash.com/premium_photo-1661578519713-6870aa63273f?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      img: "src/assets/image/Beranda_Sec_3_Medis.jpg",
       desc: "Lihat",
     },
     {
       title: "Produk Apparel",
-      img: "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=400&q=80",
+      img: "src/assets/image/Beranda_Sec_3_Apparel.jpg",
       desc: "Lihat",
     },
     {
       title: "Produk Non Apparel",
-      img: "https://images.unsplash.com/photo-1567401893414-76b7b1e5a7a5?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      img: "src/assets/image/Beranda_Sec_3_Non Apparel.jpg",
       desc: "Lihat",
     },
   ];
@@ -224,10 +227,10 @@ export default function Home() {
   const [statRef, statInView] = useInViewAnimation(0.3);
 
   const aboutImages = [
-    "https://plus.unsplash.com/premium_photo-1682142705901-28c534528ce8?q=80&w=1171&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D", // factory 1
-    "https://images.unsplash.com/photo-1523381294911-8d3cead13475?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D", // factory 2
-    "https://images.unsplash.com/photo-1493455198445-863243d88564?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D", // factory 3
-    "https://images.unsplash.com/photo-1589793463357-5fb813435467?q=80&w=688&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D", // factory big
+    "src/assets/image/Beranda_Sec_2_Pic_1.jpg",
+    "src/assets/image/Beranda_Sec_2_Pic_2.jpg",
+    "src/assets/image/Beranda_Sec_2_Pic_3.jpg",
+    "src/assets/image/Beranda_Sec_2_Pic_4.jpg",
   ];
 
   return (
@@ -274,9 +277,9 @@ export default function Home() {
             <article className="flex-1 flex flex-col justify-start pr-0 md:pr-8 mt-6 lg:mt-0">
               <div className="flex flex-row justify-between items-center gap-4">
                 <div>
-                  <span className="text-base sm:text-lg text-gray-600 font-inter block">MOST TRUSTED</span>
+                  <span className="text-base sm:text-lg text-gray-600 font-inter block">PABRIK GARMEN</span>
                   <SectionTitle inView={aboutInView} id="about-heading" className="text-xl text-primaryColor sm:text-2xl md:text-3xl font-bold font-inter mt-2 mb-2">
-                    GARMENT FACTORY
+                    PALING TERPERCAYA
                   </SectionTitle>
                 </div>
                 <img src={secondaryLogo} alt="Zumar Garment" className="w-16 sm:w-20 md:w-24 h-auto ml-2 sm:ml-4" />
@@ -300,7 +303,7 @@ export default function Home() {
           <header className="flex flex-row items-center justify-center gap-4 mb-4">
             <img src={primaryLogo} alt="Zumar Garment" className="h-12 md:h-16" />
             <SectionTitle inView={categoryInView} color="primaryColor" id="category-heading" className="text-2xl md:text-3xl font-montserrat font-semibold flex items-end gap-2 text-center">
-              <span className="text-primaryColor">Production</span> <span className="text-secondaryColor">Category</span>
+              <span className="text-primaryColor">Kategori</span> <span className="text-secondaryColor">Produk</span>
             </SectionTitle>
           </header>
           {/* Deskripsi */}
@@ -367,7 +370,7 @@ export default function Home() {
           <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-10 px-4 md:px-0 items-start">
             <div className="relative h-[483px]">
               <img
-                src="https://plus.unsplash.com/premium_photo-1676586308760-e6491557432f?q=80&w=688&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+                src={kenapaZumarImage}
                 alt="Kenapa Zumar"
                 className="absolute rounded-2xl w-[370px] h-[462.5px] object-cover shadow-lg"
                 style={{ top: '20px', left: '40px' }}
@@ -375,34 +378,34 @@ export default function Home() {
             </div>
             <article className="flex flex-col justify-end gap-6 font-montserrat">
               <SectionTitle inView={whyInView} id="why-zumar-heading" className="text-2xl md:text-3xl font-bold mb-2 pl-[1.5rem]">
-                <span className="text-primaryColor">Kenapa </span> <span className="text-secondaryColor">Zumar?</span>
+                <span className="text-primaryColor">Kenapa Harus</span> <span className="text-secondaryColor">Zumar Garment?</span>
               </SectionTitle>
               <div className="flex flex-col gap-0">
                 {/* Item 1 */}
                 <div className="flex items-center gap-4">
                   <UserIcon className={`w-6 md:w-8 h-6 md:h-8 text-primaryColor ${whyInView ? 'animate-bounce' : ''}`} aria-hidden="true" />
-                  <h3 className="font-bold text-primaryColor text-lg md:text-xl">Jahit</h3>
+                  <h3 className="font-bold text-primaryColor text-lg md:text-xl">Jahit Rapi & Presisi</h3>
                 </div>
                 <p className="text-gray-500 text-sm md:text-base pl-12">
-                  Setiap jahitan kami dibuat dengan teliti dan rapi oleh tim profesional. Hasilnya? Pakaian yang kuat, nyaman dipakai, dan tampil stylish di setiap kesempatan.
+                Setiap jahitan dikerjakan dengan standar kualitas tinggi oleh tim berpengalaman. Hasilnya bukan cuma kuat dan nyaman dipakai, tapi juga terlihat profesional. Cocok untuk seragam, brand, dan kebutuhan produksi skala apa pun.
                 </p>
 
                 {/* Item 2 */}
                 <div className="flex items-center gap-4">
                   <Cog6ToothIcon className={`w-6 md:w-8 h-6 md:h-8 text-primaryColor ${whyInView ? 'animate-spin' : ''}`} aria-hidden="true" />
-                  <h3 className="font-bold text-primaryColor text-lg md:text-xl">Bordir</h3>
+                  <h3 className="font-bold text-primaryColor text-lg md:text-xl">Terus Berinovasi</h3>
                 </div>
                 <p className="text-gray-500 text-sm md:text-base pl-12">
-                Bordir jadi ciri khas kami! Dengan teknologi modern dan detail presisi, hasilnya tampak mewah, selegan, dan pastinya bikin tampilanmu makin keren.
+                Kami terus mengembangkan desain, pilihan bahan, dan proses produksi agar tetap relevan dengan tren dan kebutuhan pasar. Tujuannya satu: hasil produksi yang efisien, berkualitas, dan sesuai ekspektasi Anda.
                 </p>
 
                 {/* Item 3 */}
                 <div className="flex items-center gap-4">
                   <CheckBadgeIcon className={`w-6 md:w-8 h-6 md:h-8 text-primaryColor ${whyInView ? 'animate-pulse' : ''}`} aria-hidden="true" />
-                  <h3 className="font-bold text-primaryColor text-lg md:text-xl">Inovasi</h3>
+                  <h3 className="font-bold text-primaryColor text-lg md:text-xl">Fleksibel & Siap Produksi</h3>
                 </div>
                 <p className="text-gray-500 text-sm md:text-base pl-12">
-                Kami selalu berinovasi agar produk tetap up-to-date. Dari desain, bahan, hingga teknik produksi — semua kami kembangkan untuk memenuhi kebutuhan dan selera pelanggan masa kini.
+                Mulai dari 1 pcs hingga ribuan pcs, Zumar siap menyesuaikan kebutuhan Anda dengan layanan konsultasi yang responsif dan proses yang transparan.
                 </p>
               </div>
             </article>

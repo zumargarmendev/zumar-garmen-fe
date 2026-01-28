@@ -105,7 +105,7 @@ const SignIn = () => {
             <div className="flex items-center w-full">
               <img src={secondaryLogo} alt="Logo" className="h-40 mr-4" />
               <div className="flex flex-col text-left">
-                <h2 className="text-4xl font-bold mb-1">Sign In To</h2>
+                <h2 className="text-4xl font-bold mb-1">Masuk</h2>
                 <p className="text-2xl font-light mb-2">Zumar Garmen</p>
                 <p className="text-sm max-w-xs">
                   Nikmati kemudahan berbelanja produk konveksi berkualitas tinggi. Dari seragam kerja, pakaian olahraga, hingga fashion kasual - semua dibuat dengan standar terbaik dan pelayanan profesional.
@@ -151,7 +151,7 @@ const SignIn = () => {
 
               <div>
                 <label htmlFor="uPassword" className="block text-gray-700 text-sm font-medium mb-1">
-                  Password
+                  Kata Sandi
                 </label>
                 <input
                   type="password"
