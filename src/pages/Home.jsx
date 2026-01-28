@@ -17,6 +17,10 @@ import aboutImage1 from "../assets/Image/Beranda_Sec_2_Pic_1.jpg";
 import aboutImage2 from "../assets/Image/Beranda_Sec_2_Pic_2.jpg";
 import aboutImage3 from "../assets/Image/Beranda_Sec_2_Pic_3.jpg";
 import aboutImage4 from "../assets/Image/Beranda_Sec_2_Pic_4.jpg";
+import categoryImage1 from "../assets/Image/Beranda_Sec_3_Busana Muslim.jpg";
+import categoryImage2 from "../assets/Image/Beranda_Sec_3_Medis.jpg";
+import categoryImage3 from "../assets/Image/Beranda_Sec_3_Apparel.jpg";
+import categoryImage4 from "../assets/Image/Beranda_Sec_3_Non Apparel.jpg";
 
 const homeSlides = [
   {
@@ -197,22 +201,22 @@ export default function Home() {
   const categories = [
     {
       title: "Produk Busana Muslim",
-      img: new URL("../assets/Image/Beranda_Sec_3_Busana Muslim.jpg"),
+      img: categoryImage1,
       desc: "Lihat",
     },
     {
       title: "Produk Kebutuhan Medis",
-      img: new URL("../assets/Image/Beranda_Sec_3_Medis.jpg"),
+      img: categoryImage2,
       desc: "Lihat",
     },
     {
       title: "Produk Apparel",
-      img: new URL("../assets/Image/Beranda_Sec_3_Apparel.jpg"),
+      img: categoryImage3,
       desc: "Lihat",
     },
     {
       title: "Produk Non Apparel",
-      img: new URL("../assets/Image/Beranda_Sec_3_Non Apparel.jpg"),
+      img: categoryImage4,
       desc: "Lihat",
     },
   ];
