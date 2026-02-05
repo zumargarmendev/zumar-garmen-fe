@@ -283,17 +283,17 @@ export default function Home() {
               </div>
             </div>
             {/* Kanan: Text dan Logo */}
-            <article className="flex-1 flex flex-col justify-start pr-0 md:pr-8 mt-6 lg:mt-0">
-              <div className="flex flex-row justify-between items-center gap-4">
-                <div>
+            <article className="flex-1 flex flex-col justify-start px-4 pr-6 lg:px-0 lg:pr-8 mt-6 lg:mt-0">
+              <div className="flex flex-row justify-between items-start gap-6 lg:gap-4">
+                <div className="lg:text-left text-center w-full lg:w-auto">
                   <span className="text-base sm:text-lg text-gray-600 font-inter block">PABRIK GARMEN</span>
                   <SectionTitle inView={aboutInView} id="about-heading" className="text-xl text-primaryColor sm:text-2xl md:text-3xl font-bold font-inter mt-2 mb-2">
                     PALING TERPERCAYA
                   </SectionTitle>
                 </div>
-                <img src={secondaryLogo} alt="Zumar Garment" className="w-16 sm:w-20 md:w-24 h-auto ml-2 sm:ml-4" />
+                <img src={secondaryLogo} alt="Zumar Garment" className="w-14 sm:w-16 md:w-24 h-auto flex-shrink-0 mt-1" />
               </div>
-              <p className="text-gray-600 font-montserrat text-xs sm:text-sm md:text-base leading-relaxed mt-2">
+              <p className="text-gray-600 font-montserrat text-xs sm:text-sm md:text-base leading-relaxed mt-2 text-center lg:text-left">
                 CV Zumar Garmen Indonesia adalah perusahaan yang bergerak di bidang jasa, perdagangan, dan industri konveksi. Berdiri sejak 1977 dengan nama “Puspa Sari”, perusahaan ini terus berkembang mengikuti perubahan zaman hingga menjadi pemain kuat di pasar domestik dan internasional. Meski sempat terdampak krisis ekonomi 1998 dan pandemi COVID-19, perusahaan mampu bertahan melalui inovasi dan digitalisasi di bidang produksi, manajemen, serta pemasaran.
                 <br /><br />
                 Kini, CV Zumar Garmen Indonesia dikenal sebagai produsen pakaian berkualitas tinggi seperti seragam kerja, pakaian olahraga, dan fashion casual, dengan komitmen pada kepuasan pelanggan, integritas, serta ketepatan waktu.
@@ -306,11 +306,11 @@ export default function Home() {
         <section
           ref={categoryRef}
           aria-labelledby="category-heading"
-          className={`bg-gray-100 max-w-7xl mx-auto mt-16 px-2 md:px-0 transition-all duration-1000 ${categoryInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
+          className={`bg-gray-100 max-w-7xl mx-auto mt-16 px-4 md:px-0 transition-all duration-1000 ${categoryInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
         >
           {/* Logo dan judul sejajar horizontal */}
           <header className="flex flex-row items-center justify-center gap-4 mb-4">
-            <img src={primaryLogo} alt="Zumar Garment" className="h-12 md:h-16" />
+            <img src={primaryLogo} alt="Zumar Garment" className="h-8 md:h-16" />
             <SectionTitle inView={categoryInView} color="primaryColor" id="category-heading" className="text-2xl md:text-3xl font-montserrat font-semibold flex items-end gap-2 text-center">
               <span className="text-primaryColor">Kategori</span> <span className="text-secondaryColor">Produk</span>
             </SectionTitle>
@@ -377,15 +377,15 @@ export default function Home() {
           className={`w-full bg-[linear-gradient(to_right,_#245156_28%,_#f3f4f6_28%)] mt-16 pt-16 pb-0 transition-all duration-1000 ${whyInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
         >
           <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-10 px-4 md:px-0 items-start">
-            <div className="relative h-[483px]">
+            <div className="relative h-[280px] sm:h-[380px] md:h-[483px] px-6 sm:px-10 md:px-0">
               <img
                 src={kenapaZumarImage}
                 alt="Kenapa Zumar"
-                className="absolute rounded-2xl w-[370px] h-[462.5px] object-cover shadow-lg"
+                className="rounded-2xl object-cover shadow-lg h-full w-full md:absolute md:w-[370px] md:h-[462.5px]"
                 style={{ top: '20px', left: '40px' }}
               />
             </div>
-            <article className="flex flex-col justify-end gap-6 font-montserrat">
+            <article className="flex flex-col justify-end gap-6 font-montserrat pl-[30%] pr-4 sm:pl-[30%] sm:pr-6 md:pl-0 md:pr-0">
               <SectionTitle inView={whyInView} id="why-zumar-heading" className="text-2xl md:text-3xl font-bold mb-2 pl-[1.5rem]">
                 <span className="text-primaryColor">Kenapa Harus</span> <span className="text-secondaryColor">Zumar Garment?</span>
               </SectionTitle>
@@ -435,7 +435,7 @@ export default function Home() {
             {/* Overlay hijau tua */}
             <div className="absolute inset-0 bg-primaryColor/80" />
             {/* Statistik */}
-            <div className="absolute font-inter inset-0 flex flex-row items-center justify-center gap-8 md:gap-44" role="list" aria-label="Company statistics">
+            <div className="absolute font-inter inset-0 grid grid-cols-4 items-center px-4 md:px-16 lg:px-32" role="list" aria-label="Company statistics">
               <div className="text-center" role="listitem">
                 <div className="text-3xl md:text-4xl font-bold text-white">
                   <AnimatedCounter to={1977} duration={1200} start={statInView} />
