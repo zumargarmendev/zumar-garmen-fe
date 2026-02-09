@@ -320,7 +320,7 @@ export default function Home() {
             Lihat berbagai kategori produk yang bisa Anda pilih sesuai kebutuhan.
           </p>
           {/* Expanding Card Grid */}
-          <div className="flex gap-4 w-full max-w-5xl mx-auto mb-10" role="list" aria-label="Production categories">
+          <div className="flex gap-2 md:gap-4 w-full max-w-5xl mx-auto mb-10 overflow-x-hidden" role="list" aria-label="Production categories">
             {categories.map((cat, i) => {
               const isActive = active === i;
               return (
@@ -374,7 +374,7 @@ export default function Home() {
         <section
           ref={whyRef}
           aria-labelledby="why-zumar-heading"
-          className={`w-full bg-[linear-gradient(to_right,_#245156_28%,_#f3f4f6_28%)] mt-16 pt-16 pb-0 transition-all duration-1000 ${whyInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
+          className={`w-full bg-gray-100 md:bg-[linear-gradient(to_right,_#245156_28%,_#f3f4f6_28%)] mt-16 pt-16 pb-0 transition-all duration-1000 ${whyInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
         >
           <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-10 px-4 md:px-0 items-start">
             <div className="relative h-[280px] sm:h-[380px] md:h-[483px] px-6 sm:px-10 md:px-0">
@@ -385,7 +385,7 @@ export default function Home() {
                 style={{ top: '20px', left: '40px' }}
               />
             </div>
-            <article className="flex flex-col justify-end gap-6 font-montserrat pl-[30%] pr-4 sm:pl-[30%] sm:pr-6 md:pl-0 md:pr-0">
+            <article className="flex flex-col justify-end gap-6 font-montserrat pl-4 pr-4 sm:pl-[30%] sm:pr-6 md:pl-0 md:pr-0">
               <SectionTitle inView={whyInView} id="why-zumar-heading" className="text-2xl md:text-3xl font-bold mb-2 pl-[1.5rem]">
                 <span className="text-primaryColor">Kenapa Harus</span> <span className="text-secondaryColor">Zumar Garment?</span>
               </SectionTitle>
@@ -435,7 +435,7 @@ export default function Home() {
             {/* Overlay hijau tua */}
             <div className="absolute inset-0 bg-primaryColor/80" />
             {/* Statistik */}
-            <div className="absolute font-inter inset-0 grid grid-cols-4 items-center px-4 md:px-16 lg:px-32" role="list" aria-label="Company statistics">
+            <div className="absolute font-inter inset-0 grid grid-cols-4 items-center px-2 md:px-16 lg:px-32" role="list" aria-label="Company statistics">
               <div className="text-center" role="listitem">
                 <div className="text-3xl md:text-4xl font-bold text-white">
                   <AnimatedCounter to={1977} duration={1200} start={statInView} />
