@@ -13,5 +13,7 @@ export default function RouteGuard() {
     }
   }, [navigate, token, location.pathname]);
 
+  if (!token) return null;
+
   return <Outlet />;
 }

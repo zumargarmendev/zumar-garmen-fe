@@ -4,8 +4,9 @@ import AdminSidebar from '../../components/AdminSidebar';
 import AdminNavbar from '../../components/AdminNavbar';
 import Pagination from '../../components/Pagination';
 import { getAllRoles, deleteRole } from '../../../api/role/role';
+import { getUserList } from '../../../api/user/user';
 import { useNavigate } from 'react-router-dom';
-import { hasPermission } from '../../../api/auth';
+import { usePermissions } from '../../../utils/usePermission';
 import BackgroundImage from '../../../assets/background/bg-zumar.png';
 
 const PAGE_LIMIT = 10;
@@ -73,6 +74,7 @@ function ActionDropdown({ onEdit, onDelete, canEdit, canDelete }) {
 }
 
 const RoleList = () => {
+  const { can } = usePermissions();
   const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -87,6 +89,7 @@ const RoleList = () => {
   const [deletingRole, setDeletingRole] = useState(null);
   const [formLoading, setFormLoading] = useState(false);
   const [formError, setFormError] = useState('');
+  const [deleteWarning, setDeleteWarning] = useState('');
 
   const navigate = useNavigate();
 
@@ -128,8 +131,20 @@ const RoleList = () => {
     navigate(`/admin/role/edit/${role.rId}`);
   };
 
-  const handleDeleteClick = (role) => {
+  const handleDeleteClick = async (role) => {
     setDeletingRole(role);
+    setDeleteWarning('');
+    setFormError('');
+    try {
+      // pagination.totalData tidak ter-filter oleh filterRId, pakai listData.length
+      const res = await getUserList({ pageLimit: 100, pageNumber: 1, filterRId: role.rId });
+      const users = res.data?.data?.listData || [];
+      if (users.length > 0) {
+        setDeleteWarning(`Role ini masih digunakan oleh ${users.length} user. Menghapus role akan menghilangkan semua permission user tersebut.`);
+      }
+    } catch {
+      // Gagal cek, lanjut tanpa warning
+    }
     setShowDeleteModal(true);
   };
 
@@ -205,7 +220,7 @@ const RoleList = () => {
                 )}
               </button>
             </div>
-            {hasPermission('roles.create') && (
+            {can('roles.create') && (
               <button type="button" className="ml-auto bg-[#E87722] hover:bg-[#d96c1f] text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2" onClick={() => navigate('/admin/role/add')}>
                 <PlusIcon className="w-5 h-5" />
                 Tambah Role
@@ -250,8 +265,8 @@ const RoleList = () => {
                             <ActionDropdown
                               onEdit={() => handleEditClick(role)}
                               onDelete={() => handleDeleteClick(role)}
-                              canEdit={hasPermission('roles.edit')}
-                              canDelete={hasPermission('roles.delete')}
+                              canEdit={can('roles.edit')}
+                              canDelete={can('roles.delete')}
                             />
                           </td>
                         </tr>
@@ -280,6 +295,7 @@ const RoleList = () => {
                 <p className="text-gray-500 mt-2">
                   Apakah Anda ingin menghapus data role ini dari sistem? Proses ini tidak dapat dibatalkan setelah Anda konfirmasi.
                 </p>
+                {deleteWarning && <div className="text-amber-600 bg-amber-50 border border-amber-200 rounded-lg mt-3 p-3 text-sm font-medium">{deleteWarning}</div>}
                 {formError && <div className="text-red-500 mt-2 text-sm">{formError}</div>}
                 <div className="flex justify-center gap-4 mt-6">
                   <button type="button" className="w-full rounded-lg bg-primaryColor px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-primaryColor/90" onClick={() => setShowDeleteModal(false)} disabled={formLoading}>

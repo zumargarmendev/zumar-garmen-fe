@@ -12,7 +12,7 @@ import {
   updateInventoryCategory,
 } from "../../../api/Inventory/inventoryCategory";
 import { getToken } from '../../../utils/tokenManager';
-import { hasPermission } from '../../../api/auth';
+import { usePermissions } from '../../../utils/usePermission';
 import AdminNavbar from "../../components/AdminNavbar";
 import AdminSidebar from "../../components/AdminSidebar";
 import Pagination from "../../components/Pagination";
@@ -125,6 +125,7 @@ function ActionDropdown({ onEdit, onDelete, canEdit, canDelete }) {
 }
 
 const CategoryList = () => {
+  const { can } = usePermissions();
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -359,7 +360,7 @@ const CategoryList = () => {
                 )}
               </button>
             </div>
-            {hasPermission('inventory.warehouse.create') && (
+            {can('inventory.warehouse.create') && (
               <button
                 type="button"
                 className="ml-auto bg-[#E87722] hover:bg-[#d96c1f] text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2"
@@ -416,8 +417,8 @@ const CategoryList = () => {
                             <ActionDropdown
                               onEdit={() => handleEditClick(cat)}
                               onDelete={() => handleDeleteClick(cat)}
-                              canEdit={hasPermission('inventory.category.edit')}
-                              canDelete={hasPermission('inventory.category.delete')}
+                              canEdit={can('inventory.category.edit')}
+                              canDelete={can('inventory.category.delete')}
                             />
                           </td>
                         </tr>

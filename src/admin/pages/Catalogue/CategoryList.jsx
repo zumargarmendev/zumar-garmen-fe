@@ -4,7 +4,7 @@ import { createCatalogueCategory, deleteCatalogueCategory, getCatalogueCategorie
 import AdminNavbar from '../../components/AdminNavbar';
 import AdminSidebar from '../../components/AdminSidebar';
 import Pagination from '../../components/Pagination';
-import { hasPermission } from '../../../api/auth';
+import { usePermissions } from '../../../utils/usePermission';
 import BackgroundImage from '../../../assets/background/bg-zumar.png';
 
 const PAGE_LIMIT = 10;
@@ -72,6 +72,7 @@ function ActionDropdown({ onEdit, onDelete, canEdit, canDelete }) {
 }
 
 const CategoryList = () => {
+  const { can } = usePermissions();
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -257,7 +258,7 @@ const CategoryList = () => {
                 )}
               </button>
             </div>
-            {hasPermission('catalogue.category.create') && (
+            {can('catalogue.category.create') && (
               <button type="button" className="ml-auto bg-[#E87722] hover:bg-[#d96c1f] text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2" onClick={() => setShowAddModal(true)}>
                 <PlusIcon className="w-5 h-5" />
                 Tambah Kategori
@@ -294,8 +295,8 @@ const CategoryList = () => {
                             <ActionDropdown
                               onEdit={() => handleEditClick(cat)}
                               onDelete={() => handleDeleteClick(cat)}
-                              canEdit={hasPermission('catalogue.category.edit')}
-                              canDelete={hasPermission('catalogue.category.delete')}
+                              canEdit={can('catalogue.category.edit')}
+                              canDelete={can('catalogue.category.delete')}
                             />
                           </td>
                         </tr>

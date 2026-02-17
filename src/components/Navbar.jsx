@@ -1,10 +1,9 @@
 import { Disclosure, Menu, Transition } from "@headlessui/react";
 import { Bars3Icon, ClipboardDocumentListIcon, ClockIcon, PowerIcon, UserIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import clsx from "clsx";
-import { jwtDecode } from 'jwt-decode';
 import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { logout } from '../api/auth';
+import { logout, getCurrentUser } from '../api/auth';
 import { getToken } from '../utils/tokenManager';
 
 import primaryLogo from "../assets/Logo/primary_logo.png";
@@ -57,21 +56,11 @@ const UserMenuItem = ({ item, onClick, isActive }) => (
 
 // Extracted component for user avatar
 const UserAvatar = ({ onLogout }) => {
-  let initials = 'U';
-  const token = getToken();
   const location = useLocation();
-  if (token) {
-    try {
-      const payload = jwtDecode(token);
-      if (payload.u_name) {
-        initials = payload.u_name
-          .split(' ')
-          .map((n) => n[0])
-          .join('')
-          .toUpperCase();
-      }
-    } catch { /* ignore error */ }
-  }
+  const user = getCurrentUser();
+  const initials = user?.name
+    ? user.name.split(' ').map((n) => n[0]).join('').toUpperCase()
+    : 'U';
 
   return (
     <Menu as="div" className="relative">

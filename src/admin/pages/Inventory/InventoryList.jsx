@@ -9,7 +9,7 @@ import { getWarehouses } from '../../../api/Inventory/inventoryWarehouse';
 import AdminSidebar from '../../components/AdminSidebar';
 import AdminNavbar from '../../components/AdminNavbar';
 import Pagination from '../../components/Pagination';
-import { hasPermission, hasAnyRole, getCurrentUserRole } from '../../../api/auth';
+import { usePermissions } from '../../../utils/usePermission';
 import BackgroundImage from '../../../assets/background/bg-zumar.png';
 import MassUploadModal from '../../components/MassUploadModal';
 
@@ -173,6 +173,7 @@ function CustomDropdown({ label, options, value, onChange, placeholder, searchPl
 }
 
 const InventoryList = () => {
+  const { can } = usePermissions();
   const navigate = useNavigate();
   const location = useLocation();
   const [inventories, setInventories] = useState([]);
@@ -567,7 +568,7 @@ const InventoryList = () => {
               labelMinWidth="70px"
             />
             {/* Button Tambah Inventory */}
-            {hasPermission('inventory.items.create') && (
+            {can('inventory.items.create') && (
               <button
                 type="button"
                 className="ml-auto bg-[#E87722] hover:bg-[#d96c1f] text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2"
@@ -580,14 +581,7 @@ const InventoryList = () => {
             )}
           </div>
 
-          {/* Mass Upload Button - Temporary: All users can access for testing */}
-          {(() => {
-            // Debug: Log current user role
-            const userRole = getCurrentUserRole();
-            console.log('Inventory - Current Role:', userRole);
-            // Temporary: Allow all roles for testing
-            return true;
-          })() && (
+          {can('inventory.items.create') && (
             <div className="mt-4">
               <button
                 type="button"
@@ -637,9 +631,9 @@ const InventoryList = () => {
                             onEdit={() => navigate(`/admin/inventory/edit/${inv.iId}`)}
                             onTransfer={() => handleTransferClick(inv)}
                             onDelete={() => handleDeleteClick(inv)}
-                            canEdit={hasPermission('inventory.items.edit')}
-                            canTransfer={hasPermission('inventory.relocation.create')}
-                            canDelete={hasPermission('inventory.items.delete')}
+                            canEdit={can('inventory.items.edit')}
+                            canTransfer={can('inventory.relocation.create')}
+                            canDelete={can('inventory.items.delete')}
                           />
                         </td>
                       </tr>

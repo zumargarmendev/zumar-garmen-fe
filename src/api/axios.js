@@ -1,33 +1,31 @@
 import axios from 'axios';
-import { getToken } from '../utils/tokenManager';
+import { getToken, removeToken } from '../utils/tokenManager';
 
 const api = axios.create({
   baseURL: 'https://api.zumar.co.id',
-  // headers: {
-  //   'Content-Type': 'application/json',
-  // },
 });
 
 api.interceptors.request.use((config) => {
-  // Use token manager to get token from multiple sources
   const token = getToken();
-  
+
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
-  } else {
-    console.log('No token found in request');
   }
-  
+
   return config;
 });
 
 api.interceptors.response.use(
-  (response) => {
-    return response;
-  },
+  (response) => response,
   (error) => {
+    if (error.response?.status === 401) {
+      removeToken();
+      localStorage.removeItem('userPermissions');
+      window.location.href = '/sign-in';
+    }
+
     return Promise.reject(error);
   }
 );
 
-export default api; 
+export default api;

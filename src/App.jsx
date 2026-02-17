@@ -1,9 +1,8 @@
 import { Route, Routes } from "react-router-dom";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import React, { useEffect } from "react";
-import { fetchAndStoreUserPermissions } from "./api/auth";
-import { getTokenInfo } from "./utils/tokenManager";
+import React from "react";
+import { PermissionProvider } from "./context/PermissionContext";
 import AddCatalogue from "./admin/pages/Catalogue/AddCatalogue";
 import CatalogueList from "./admin/pages/Catalogue/CatalogueList";
 import CatalogueCategoryList from "./admin/pages/Catalogue/CategoryList";
@@ -28,9 +27,6 @@ import RabSimulationList from "./admin/pages/rab-simulation/rab-simulation-list"
 import AddRABTemplate from "./admin/pages/rab-template/add-rab-template";
 import RABTemplateDetail from "./admin/pages/rab-template/rab-template-detail";
 import RABTemplateList from "./admin/pages/rab-template/rab-template-list";
-import AdminList from "./admin/pages/user/admin-list";
-import OwnerList from "./admin/pages/user/owner-list";
-import StaffList from "./admin/pages/user/staff-list";
 import UserList from "./admin/pages/user/user-list";
 import OrderRecapReport from "./admin/pages/report/order-recap-report";
 import InventoryReport from "./admin/pages/report/inventory-report";
@@ -57,19 +53,8 @@ import AddRole from "./admin/pages/role/add-role";
 import EditRole from "./admin/pages/role/edit-role";
 
 function App() {
-  // Fetch and cache user permissions on app mount
-  useEffect(() => {
-    const initPermissions = async () => {
-      const token = getTokenInfo();
-      if (token) {
-        await fetchAndStoreUserPermissions();
-      }
-    };
-    initPermissions();
-  }, []);
-
   return (
-    <>
+    <PermissionProvider>
       <ToastContainer
         position="top-right"
         autoClose={3000}
@@ -204,15 +189,6 @@ function App() {
             <Route path="/admin/role/edit/:rId" element={<EditRole />} />
           </Route>
           <Route element={<PermissionGuard permissions={['users.view']} />}>
-            <Route path="/admin/owner-list" element={<OwnerList />} />
-          </Route>
-          <Route element={<PermissionGuard permissions={['users.view']} />}>
-            <Route path="/admin/admin-list" element={<AdminList />} />
-          </Route>
-          <Route element={<PermissionGuard permissions={['users.view']} />}>
-            <Route path="/admin/staff-list" element={<StaffList />} />
-          </Route>
-          <Route element={<PermissionGuard permissions={['users.view']} />}>
             <Route path="/admin/user-list" element={<UserList />} />
           </Route>
         </Route>
@@ -220,7 +196,7 @@ function App() {
         <Route path="*" element={<NotFound />} />
       </Routes>
 
-    </>
+    </PermissionProvider>
   );
 }
 

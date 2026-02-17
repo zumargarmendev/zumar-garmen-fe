@@ -1,7 +1,7 @@
 import AdminSidebar from '../../components/AdminSidebar';
 import AdminNavbar from '../../components/AdminNavbar';
 import Pagination from '../../components/Pagination';
-import { hasPermission, hasAnyRole, getCurrentUserRole } from '../../../api/auth';
+import { usePermissions } from '../../../utils/usePermission';
 import React, { useCallback, useEffect, useState, useRef } from 'react';
 import { MagnifyingGlassIcon, PlusIcon, XCircleIcon, ChevronDownIcon, ArrowUpTrayIcon } from '@heroicons/react/24/solid';
 import { getInventorySubCategories, createInventorySubCategory, updateInventorySubCategory, deleteInventorySubCategory, downloadInventorySubCategoryTemplate, massUploadInventorySubCategory } from '../../../api/Inventory/inventorySubCategory';
@@ -101,6 +101,7 @@ function ActionDropdown({ onEdit, onDelete, canEdit, canDelete }) {
 }
 
 const SubCategoryList = () => {
+  const { can } = usePermissions();
   const [subCategories, setSubCategories] = useState([]);
   const [allCategories, setAllCategories] = useState([]); // For dropdowns
   const [loading, setLoading] = useState(false);
@@ -357,7 +358,7 @@ const SubCategoryList = () => {
                 )}
               </button>
             </div>
-            {hasPermission('inventory.subcategory.create') && (
+            {can('inventory.subcategory.create') && (
               <button type="button" className="ml-auto bg-[#E87722] hover:bg-[#d96c1f] text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2" onClick={() => { resetAddModal(); setShowAddModal(true); }}>
                 <PlusIcon className="w-5 h-5" />
                 Tambah Barang
@@ -365,14 +366,7 @@ const SubCategoryList = () => {
             )}
           </form>
 
-          {/* Mass Upload Button - Temporary: All users can access for testing */}
-          {(() => {
-            // Debug: Log current user role
-            const userRole = getCurrentUserRole();
-            console.log('SubCategory - Current Role:', userRole);
-            // Temporary: Allow all roles for testing
-            return true;
-          })() && (
+          {can('inventory.subcategory.create') && (
             <div className="mt-4">
               <button
                 type="button"
@@ -413,8 +407,8 @@ const SubCategoryList = () => {
                           <ActionDropdown
                             onEdit={() => handleEditClick(sub)}
                             onDelete={() => handleDeleteClick(sub)}
-                            canEdit={hasPermission('inventory.subcategory.edit')}
-                            canDelete={hasPermission('inventory.subcategory.delete')}
+                            canEdit={can('inventory.subcategory.edit')}
+                            canDelete={can('inventory.subcategory.delete')}
                           />
                         </td>
                       </tr>

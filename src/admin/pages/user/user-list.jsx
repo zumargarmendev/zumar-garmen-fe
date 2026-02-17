@@ -19,6 +19,7 @@ import { getAllRoles } from "../../../api/role/role";
 import AdminNavbar from "../../components/AdminNavbar";
 import AdminSidebar from "../../components/AdminSidebar";
 import Pagination from "../../components/Pagination";
+import { usePermissions } from '../../../utils/usePermission';
 import BackgroundImage from '../../../assets/background/bg-zumar.png';
 
 // Custom Dropdown Component from CatalogueList
@@ -192,10 +193,14 @@ function RoleDropdown({ roles = [], value, onSelect, placeholder = "Pilih role..
   );
 }
 
-function ActionDropdown({ onEditUser, onDelete }) {
+function ActionDropdown({ onEditUser, onDelete, canEdit, canDelete }) {
   const [open, setOpen] = useState(false);
   const btnRef = useRef(null);
   const dropdownRef = useRef(null);
+
+  if (!canEdit && !canDelete) {
+    return null;
+  }
 
   useEffect(() => {
     if (!open) return;
@@ -228,28 +233,31 @@ function ActionDropdown({ onEditUser, onDelete }) {
           ref={dropdownRef}
           className="absolute left-0 z-10 w-44 rounded-2xl bg-white shadow-xl ring-1 ring-black ring-opacity-5 focus:outline-none p-2 flex flex-col gap-2 max-h-96 overflow-y-auto mt-2 origin-top-left"
         >
-          <button
-            onClick={() => {
-              onEditUser();
-              setOpen(false);
-            }}
-            className="w-full py-1.5 rounded-md text-sm font-semibold text-white shadow transition-all"
-            style={{ backgroundColor: "#2F6468" }}
-          >
-            Edit User
-          </button>
+          {canEdit && (
+            <button
+              onClick={() => {
+                onEditUser();
+                setOpen(false);
+              }}
+              className="w-full py-1.5 rounded-md text-sm font-semibold text-white shadow transition-all"
+              style={{ backgroundColor: "#2F6468" }}
+            >
+              Edit User
+            </button>
+          )}
 
-          {/* Delete */}
-          <button
-            onClick={() => {
-              onDelete();
-              setOpen(false);
-            }}
-            className="w-full py-1.5 rounded-md text-sm font-semibold text-white shadow transition-all"
-            style={{ backgroundColor: "#DC2626" }}
-          >
-            Hapus
-          </button>
+          {canDelete && (
+            <button
+              onClick={() => {
+                onDelete();
+                setOpen(false);
+              }}
+              className="w-full py-1.5 rounded-md text-sm font-semibold text-white shadow transition-all"
+              style={{ backgroundColor: "#DC2626" }}
+            >
+              Hapus
+            </button>
+          )}
         </div>
       )}
     </div>
@@ -257,6 +265,7 @@ function ActionDropdown({ onEditUser, onDelete }) {
 }
 
 export default function UserList() {
+  const { can } = usePermissions();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -283,7 +292,7 @@ export default function UserList() {
     uPhone: "",
     uAddress: "",
     uPassword: "",
-    rId: 5,
+    rId: "",
   });
   const [editUser, setEditUser] = useState({
     uId: "",
@@ -292,11 +301,15 @@ export default function UserList() {
     uPhone: "",
     uAddress: "",
     uPassword: "",
-    rId: 5,
+    rId: "",
   });
 
   const handleAddUser = async (e) => {
     e.preventDefault();
+    if (!newUser.rId) {
+      alert("Silakan pilih role terlebih dahulu.");
+      return;
+    }
     try {
       setFormLoading(true);
       const response = await createUser({
@@ -313,7 +326,7 @@ export default function UserList() {
       console.log("User berhasil ditambahkan:", response.data);
 
       setShowAddModal(false);
-      setNewUser({ uName: "", uEmail: "", uPhone: "", uAddress: "", uPassword: "" });
+      setNewUser({ uName: "", uEmail: "", uPhone: "", uAddress: "", uPassword: "", rId: "" });
     } catch (error) {
       console.error("Gagal menambahkan user:", error);
       alert("Terjadi kesalahan saat menambah user.");
@@ -337,6 +350,10 @@ export default function UserList() {
 
   const handleEditUser = async (e) => {
     e.preventDefault();
+    if (!editUser.rId) {
+      alert("Silakan pilih role terlebih dahulu.");
+      return;
+    }
     try {
       setLoading(true);
 
@@ -521,19 +538,21 @@ export default function UserList() {
                 labelMinWidth="80px"
               />
 
-              <button
-                type="button"
-                className="ml-auto bg-[#E87722] hover:bg-[#d96c1f] text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 flex-shrink-0"
-                onClick={() => setShowAddModal(true)}
-                disabled={loading}
-              >
-                {loading ? (
-                  <RiLoader3Fill className="animate-spin" />
-                ) : (
-                  <PlusIcon className="w-5 h-5" />
-                )}
-                Tambah User
-              </button>
+              {can('users.create') && (
+                <button
+                  type="button"
+                  className="ml-auto bg-[#E87722] hover:bg-[#d96c1f] text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 flex-shrink-0"
+                  onClick={() => setShowAddModal(true)}
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <RiLoader3Fill className="animate-spin" />
+                  ) : (
+                    <PlusIcon className="w-5 h-5" />
+                  )}
+                  Tambah User
+                </button>
+              )}
             </div>
           </div>
 
@@ -624,6 +643,8 @@ export default function UserList() {
                                     "Apakah Anda yakin ingin menghapus user ini?",
                                 })
                               }
+                              canEdit={can('users.edit')}
+                              canDelete={can('users.delete')}
                             />
                           </td>
                         </tr>

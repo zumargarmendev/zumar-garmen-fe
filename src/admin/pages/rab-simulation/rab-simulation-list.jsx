@@ -17,7 +17,7 @@ import {
 import { formatCurrency } from "../../../utils";
 import AdminNavbar from "../../components/AdminNavbar";
 import AdminSidebar from "../../components/AdminSidebar";
-import { hasPermission } from '../../../api/auth';
+import { usePermissions } from '../../../utils/usePermission';
 import BackgroundImage from '../../../assets/background/bg-zumar.png';
 
 function ActionDropdown({ onEditRab, onDelete, canEdit, canDelete }) {
@@ -93,6 +93,7 @@ function ActionDropdown({ onEditRab, onDelete, canEdit, canDelete }) {
 }
 
 export default function RabSimulationList() {
+  const { can } = usePermissions();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -257,7 +258,7 @@ export default function RabSimulationList() {
               </div>
             </form> */}
 
-              {hasPermission('rab.simulation.create') && (
+              {can('rab.simulation.create') && (
                 <button
                   type="button"
                   className="ml-auto bg-[#E87722] hover:bg-[#d96c1f] text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 flex-shrink-0"
@@ -363,8 +364,8 @@ export default function RabSimulationList() {
                                     "Apakah Anda yakin ingin menghapus simulasi ini?",
                                 })
                               }
-                              canEdit={hasPermission('rab.simulation.edit')}
-                              canDelete={hasPermission('rab.simulation.delete')}
+                              canEdit={can('rab.simulation.edit')}
+                              canDelete={can('rab.simulation.delete')}
                             />
                           </td>
                           <td className="px-3 py- whitespace-nowrap ">

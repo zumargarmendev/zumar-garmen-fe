@@ -6,12 +6,13 @@ import AdminSidebar from '../../components/AdminSidebar';
 import AdminNavbar from '../../components/AdminNavbar';
 import Pagination from '../../components/Pagination';
 import CustomDropdown from '../../components/CustomDropdown';
-import { hasPermission } from '../../../api/auth';
+import { usePermissions } from '../../../utils/usePermission';
 import BackgroundImage from '../../../assets/background/bg-zumar.png';
 
 const PAGE_LIMIT = 10;
 
 const InventoryRelocation = () => {
+  const { can } = usePermissions();
   const [relocations, setRelocations] = useState([]);
   const [warehouses, setWarehouses] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -345,8 +346,8 @@ const InventoryRelocation = () => {
                           <ActionDropdown
                             relocation={rel}
                             onViewDetail={handleViewDetail}
-                            canApprove={hasPermission('inventory.relocation.approve')}
-                            canReject={hasPermission('inventory.relocation.reject')}
+                            canApprove={can('inventory.relocation.approve')}
+                            canReject={can('inventory.relocation.reject')}
                           />
                         </td>
                       </tr>

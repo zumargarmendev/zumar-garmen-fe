@@ -22,7 +22,7 @@ import { calculateRABItemValues, formatCurrency } from "../../../utils";
 import { generateRABPReport } from "../../../utils/pdfGenerator";
 import AdminNavbar from "../../components/AdminNavbar";
 import AdminSidebar from "../../components/AdminSidebar";
-import { hasPermission } from '../../../api/auth';
+import { usePermissions } from '../../../utils/usePermission';
 import { LockableInput } from "../../components/lockable-input";
 import BackgroundImage from '../../../assets/background/bg-zumar.png';
 
@@ -318,7 +318,7 @@ const RABItem = ({
       <form ref={formRef}>
         {/* Material Info */}
         <div className="flex w-full justify-end pr-4">
-          {hasPermission('rab.lock', 'rab.unlock') && (
+          {can('rab.lock', 'rab.unlock') && (
             <button
               type="button"
               onClick={() => {
@@ -976,7 +976,7 @@ const RABItem = ({
 
         {/* Submit Button */}
         <div className="flex justify-end mt-6">
-          {hasPermission('rab.edit') && (
+          {can('rab.edit') && (
             <button
               type="submit"
               onClick={handleSubmit}
@@ -995,6 +995,7 @@ const RABItem = ({
 };
 
 export default function EditRabOrder() {
+  const { can } = usePermissions();
   const { orderId } = useParams();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const navigate = useNavigate();
@@ -1324,7 +1325,7 @@ export default function EditRabOrder() {
                   </h1>
 
                   {/* RABP Report Button */}
-                  {hasPermission('reports.rabp') && (
+                  {can('reports.rabp') && (
                     <button
                       onClick={async () => {
                         try {

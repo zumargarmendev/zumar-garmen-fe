@@ -22,7 +22,7 @@ import {
   generateReportOrder,
 } from "../../../api/Order/order";
 import { handleFormChange } from "../../../utils";
-import { getCurrentUserRole, hasAnyRole, hasPermission } from "../../../api/auth";
+import { usePermissions } from "../../../utils/usePermission";
 import AdminNavbar from "../../components/AdminNavbar";
 import AdminSidebar from "../../components/AdminSidebar";
 import Pagination from "../../components/Pagination";
@@ -44,6 +44,7 @@ function ActionDropdown({
   onUnlockProgress,
   onGenerate,
 }) {
+  const { can } = usePermissions();
   const [open, setOpen] = useState(false);
   const btnRef = React.useRef(null);
   const dropdownRef = React.useRef(null);
@@ -108,9 +109,6 @@ function ActionDropdown({
   };
 
   function getButtons() {
-    // Ambil role user langsung dari JWT token
-    const role = getCurrentUserRole();
-
     <button
       key="view"
       onClick={() => {
@@ -143,30 +141,30 @@ function ActionDropdown({
     let buttons = buttonRules[key] || [];
 
     // kalau bukan OWNER, buang lock/unlock
-    if (!hasPermission('progress.lock' && 'progress.unlock')) {
+    if (!can('progress.lock' && 'progress.unlock')) {
       buttons = buttons.filter(
         (btn) => btn !== "lockProgress" && btn !== "unlockProgress"
       );
     }
 
     // Permission check for Progress button
-    if (!hasPermission('progress.view')) {
+    if (!can('progress.view')) {
       buttons = buttons.filter(btn => btn !== 'progress');
     }
 
-    if (!hasPermission('orders.rab')) {
+    if (!can('orders.rab')) {
       buttons = buttons.filter(btn => btn !== 'rab');
     }
 
-    if (!hasPermission('orders.approve')) {
+    if (!can('orders.approve')) {
       buttons = buttons.filter(btn => btn !== 'approve');
     }
 
-    if (!hasPermission('orders.reject')) {
+    if (!can('orders.reject')) {
       buttons = buttons.filter(btn => btn !== 'reject');
     }
 
-    if (!hasPermission('orders.payment')) {
+    if (!can('orders.payment')) {
       buttons = buttons.filter(btn => btn !== 'skema');
       buttons = buttons.filter(btn => btn !== 'downPayment');
       buttons = buttons.filter(btn => btn !== 'settlement');
@@ -295,6 +293,7 @@ function ActionDropdown({
 }
 
 const OrderList = () => {
+  const { can } = usePermissions();
   const navigate = useNavigate();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -676,7 +675,7 @@ const OrderList = () => {
                 </div>
               </form>
 
-              {hasPermission('orders.create') && (
+              {can('orders.create') && (
                 <button
                   type="button"
                   className="ml-auto bg-[#E87722] hover:bg-[#d96c1f] text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 flex-shrink-0"

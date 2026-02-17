@@ -1,7 +1,8 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { Outlet, useNavigate } from "react-router-dom";
-import { getCurrentUserRole, isAdmin, hasAnyPermission } from "../api/auth";
+import { getCurrentUserRole, isAdmin } from "../api/auth";
 import { getToken } from "../utils/tokenManager";
+import { usePermissions } from "../utils/usePermission";
 
 export default function PermissionGuard({
   roles = [],
@@ -12,40 +13,25 @@ export default function PermissionGuard({
   const navigate = useNavigate();
   const token = getToken();
   const userRole = getCurrentUserRole();
+  const { canAny } = usePermissions();
 
-  const rolesCheck = JSON.stringify(roles);
-  const permissionsCheck = JSON.stringify(permissions);
+  const hasAccess = useMemo(() => {
+    if (!token) return false;
+    if (requireAdmin && !isAdmin()) return false;
+    if (roles.length > 0 && !roles.includes(userRole)) return false;
+    if (permissions.length > 0 && !canAny(permissions)) return false;
+    return true;
+  }, [token, userRole, roles, permissions, requireAdmin, canAny]);
 
   useEffect(() => {
     if (!token) {
       navigate("/sign-in");
-      return;
-    }
-
-    if (requireAdmin && !isAdmin()) {
-      navigate("/");
-      return;
-    }
-
-    const passedRole = roles.length === 0 || roles.includes(userRole);
-    const passedPermission = permissions.length === 0 || hasAnyPermission(permissions);
-
-    if (!passedRole || !passedPermission) {
-      console.warn("PermissionGuard: Access Denied", { expectedRoles: roles, expectedPerms: permissions, userRole });
+    } else if (!hasAccess) {
       navigate(fallbackPath);
     }
+  }, [navigate, token, hasAccess, fallbackPath]);
 
-  }, [navigate, token, userRole, rolesCheck, permissionsCheck, requireAdmin, fallbackPath]);
-
-  if (!token) return null;
-  if (requireAdmin && !isAdmin()) return null;
-
-  const passedRole = roles.length === 0 || roles.includes(userRole);
-  const passedPermission = permissions.length === 0 || hasAnyPermission(permissions);
-
-  if (!passedRole || !passedPermission) {
-    return null;
-  }
+  if (!hasAccess) return null;
 
   return <Outlet />;
 }

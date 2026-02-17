@@ -36,11 +36,12 @@ import {
 import AdminNavbar from '../../components/AdminNavbar';
 import AdminSidebar from '../../components/AdminSidebar';
 import ImagePreview from "../../../components/image-preview";
-import { hasPermission } from '../../../api/auth';
+import { usePermissions } from '../../../utils/usePermission';
 import BackgroundImage from '../../../assets/background/bg-zumar.png';
 import SearchableDropdown from '../../../components/SearchableDropdown';
 
 const EditOrder = () => {
+  const { can } = usePermissions();
   const { oId } = useParams();
   const navigate = useNavigate();
 
@@ -1179,7 +1180,7 @@ const EditOrder = () => {
                   </p>
                 </div>
 
-                {orderProgressMain.length > 0 && hasPermission('reports.progress') && (
+                {orderProgressMain.length > 0 && can('reports.progress') && (
                   <button
                     onClick={handlePrintProgressLengkap}
                     className="flex items-center gap-2 px-4 py-2 bg-primaryColor text-white rounded-lg hover:bg-primaryColor/90 disabled:opacity-50 transition-colors whitespace-nowrap"
@@ -1290,7 +1291,7 @@ const EditOrder = () => {
                         </div>
 
                         <div className="ml-4 flex gap-2">
-                          {hasPermission('reports.progress') && (
+                          {can('reports.progress') && (
                             <button
                               onClick={(e) => {
                                 e.stopPropagation(); // Prevent triggering expand/collapse
@@ -1309,7 +1310,7 @@ const EditOrder = () => {
                           )}
 
                           {/* Add Progress Button - Conditional */}
-                          {orderData?.oIsLockProgress === 0 && progressPercentage < 100 && hasPermission('progress.create') && (
+                          {orderData?.oIsLockProgress === 0 && progressPercentage < 100 && can('progress.create') && (
                             <button
                               onClick={(e) => {
                                 e.stopPropagation(); // Prevent triggering expand/collapse
@@ -1701,7 +1702,7 @@ const EditOrder = () => {
                                       </div>
 
                                       <div className="flex gap-2 ml-4">
-                                        {itemProgress < 100 && hasPermission('progress.detail.create') && (
+                                        {itemProgress < 100 && can('progress.detail.create') && (
                                           <button
                                             onClick={() => {
                                               setSelectedProgressId(progress.opId);
@@ -1714,7 +1715,7 @@ const EditOrder = () => {
                                             Tambah Detail
                                           </button>
                                         )}
-                                        {orderData?.oIsLockProgress === 0 && hasPermission('progress.delete') && (
+                                        {orderData?.oIsLockProgress === 0 && can('progress.delete') && (
                                           <button
                                             onClick={() => handleDeleteProgress(progress.opId)}
                                             className="text-sm px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600"
@@ -1835,7 +1836,7 @@ const EditOrder = () => {
                                                   Setoran #{dIndex + 1}
                                                 </span>
                                                 <div className="flex gap-1">
-                                                  {hasPermission('progress.detail.edit') && (
+                                                  {can('progress.detail.edit') && (
                                                     <button
                                                       onClick={() => {
                                                         setSelectedProgressDetailId(detail.opdId);
@@ -1853,7 +1854,7 @@ const EditOrder = () => {
                                                       ✏️
                                                     </button>
                                                   )}
-                                                  {hasPermission('progress.detail.delete') && (
+                                                  {can('progress.detail.delete') && (
                                                     <button
                                                       onClick={() => {
                                                         setSelectedProgressId(progress.opId);

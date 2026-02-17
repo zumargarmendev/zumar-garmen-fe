@@ -127,17 +127,7 @@ export const clearUserPermissions = () => {
 
 export const hasPermission = (permission) => {
   const permissions = getUserPermissions();
-
-  if (permissions.includes(permission)) {
-    return true;
-  }
-
-  const [module] = permission.split('.');
-  if (permissions.includes(`${module}.*`)) {
-    return true;
-  }
-
-  return false;
+  return permissions.includes(permission);
 };
 
 export const hasAnyPermission = (requiredPermissions) => {

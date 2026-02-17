@@ -1,7 +1,7 @@
 import AdminSidebar from '../../components/AdminSidebar';
 import AdminNavbar from '../../components/AdminNavbar';
 import Pagination from '../../components/Pagination';
-import { hasPermission } from '../../../api/auth';
+import { usePermissions } from '../../../utils/usePermission';
 import React, { useCallback, useEffect, useState } from 'react';
 import { MagnifyingGlassIcon, PlusIcon, XCircleIcon, ChevronDownIcon } from '@heroicons/react/24/solid';
 import { getCatalogueSubCategories, createCatalogueSubCategory, updateCatalogueSubCategory, deleteCatalogueSubCategory } from '../../../api/Catalogue/catalogueSubCategory';
@@ -73,6 +73,7 @@ function ActionDropdown({ onEdit, onDelete, canEdit, canDelete }) {
 }
 
 const SubCategoryList = () => {
+  const { can } = usePermissions();
   const [subCategories, setSubCategories] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -273,7 +274,7 @@ const SubCategoryList = () => {
                 )}
               </button>
             </div>
-            {hasPermission('catalogue.subcategory.create') && (
+            {can('catalogue.subcategory.create') && (
               <button type="button" className="ml-auto bg-[#E87722] hover:bg-[#d96c1f] text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2" onClick={() => setShowAddModal(true)}>
                 <PlusIcon className="w-5 h-5" />
                 Tambah Sub Kategori
@@ -313,8 +314,8 @@ const SubCategoryList = () => {
                             <ActionDropdown
                               onEdit={() => handleEditClick(sub)}
                               onDelete={() => handleDeleteClick(sub)}
-                              canEdit={hasPermission('catalogue.subcategory.edit')}
-                              canDelete={hasPermission('catalogue.subcategory.delete')}
+                              canEdit={can('catalogue.subcategory.edit')}
+                              canDelete={can('catalogue.subcategory.delete')}
                             />
                           </td>
                         </tr>

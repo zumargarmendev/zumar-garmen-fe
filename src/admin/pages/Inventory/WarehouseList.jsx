@@ -5,7 +5,7 @@ import React, { useCallback, useEffect, useState, useRef } from 'react';
 import { MagnifyingGlassIcon, PlusIcon, XCircleIcon, ChevronDownIcon } from '@heroicons/react/24/solid';
 import { getWarehouses, createWarehouse, updateWarehouse, deleteWarehouse } from '../../../api/Inventory/inventoryWarehouse';
 import { getToken } from '../../../utils/tokenManager';
-import { hasPermission } from '../../../api/auth';
+import { usePermissions } from '../../../utils/usePermission';
 import BackgroundImage from '../../../assets/background/bg-zumar.png';
 
 const PAGE_LIMIT = 10;
@@ -102,6 +102,7 @@ function ActionDropdown({ onEdit, onDelete, canEdit, canDelete }) {
 }
 
 const WarehouseList = () => {
+  const { can } = usePermissions();
   const [warehouses, setWarehouses] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -284,7 +285,7 @@ const WarehouseList = () => {
                 )}
               </button>
             </div>
-            {hasPermission('inventory.warehouse.create') && (
+            {can('inventory.warehouse.create') && (
               <button type="button" className="ml-auto bg-[#E87722] hover:bg-[#d96c1f] text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2" onClick={() => setShowAddModal(true)}>
                 <PlusIcon className="w-5 h-5" />
                 Tambah Warehouse
@@ -318,8 +319,8 @@ const WarehouseList = () => {
                           <ActionDropdown
                             onEdit={() => handleEditClick(wh)}
                             onDelete={() => handleDeleteClick(wh)}
-                            canEdit={hasPermission('inventory.warehouse.edit')}
-                            canDelete={hasPermission('inventory.warehouse.delete')}
+                            canEdit={can('inventory.warehouse.edit')}
+                            canDelete={can('inventory.warehouse.delete')}
                           />
                         </td>
                       </tr>

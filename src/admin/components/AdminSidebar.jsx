@@ -22,7 +22,7 @@ import {
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import primaryLogo from "../../assets/Logo/primary_logo.png";
-import { hasPermission as checkPermission, hasAnyPermission } from "../../api/auth";
+import { usePermissions } from "../../utils/usePermission";
 
 const MAIN_MENU = [
   {
@@ -200,19 +200,19 @@ const AdminSidebar = ({
   onToggleCollapse,
 }) => {
   const location = useLocation();
+  const { canAny } = usePermissions();
 
   const isActive = React.useCallback(
     (path) => location.pathname === path,
     [location.pathname],
   );
 
-  // Updated hasPermission to use permission system
   const hasMenuPermission = React.useCallback(
     (permissions) => {
       if (!permissions || permissions.length === 0) return true;
-      return hasAnyPermission(permissions);
+      return canAny(permissions);
     },
-    [],
+    [canAny],
   );
 
   const [openDropdown, setOpenDropdown] = React.useState(null);

@@ -3,7 +3,7 @@ import { MagnifyingGlassIcon, PlusIcon, XCircleIcon, ChevronDownIcon } from '@he
 import AdminSidebar from '../../components/AdminSidebar';
 import AdminNavbar from '../../components/AdminNavbar';
 import Pagination from '../../components/Pagination';
-import { hasPermission } from '../../../api/auth';
+import { usePermissions } from '../../../utils/usePermission';
 import { getCatalogueProducts, deleteCatalogueProduct } from '../../../api/Catalogue/catalogue';
 import { getCatalogueCategories } from '../../../api/Catalogue/catalogueCategory';
 import { getCatalogueSubCategories } from '../../../api/Catalogue/catalogueSubCategory';
@@ -148,6 +148,7 @@ function ActionDropdown({ onEdit, onDelete, canEdit, canDelete }) {
 }
 
 const CatalogueList = () => {
+  const { can } = usePermissions();
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [subCategories, setSubCategories] = useState([]);
@@ -377,7 +378,7 @@ const CatalogueList = () => {
                 )}
               </button>
             </div>
-            {hasPermission('catalogue.product.create') && (
+            {can('catalogue.product.create') && (
               <button type="button" className="ml-auto bg-[#E87722] hover:bg-[#d96c1f] text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2" onClick={() => navigate('/admin/catalogue/add')}>
                 <PlusIcon className="w-5 h-5" />
                 Tambah Produk
@@ -457,8 +458,8 @@ const CatalogueList = () => {
                             <ActionDropdown
                               onEdit={() => handleEditClick(prod)}
                               onDelete={() => handleDeleteClick(prod)}
-                              canEdit={hasPermission('catalogue.product.edit')}
-                              canDelete={hasPermission('catalogue.product.delete')}
+                              canEdit={can('catalogue.product.edit')}
+                              canDelete={can('catalogue.product.delete')}
                             />
                           </td>
                         </tr>

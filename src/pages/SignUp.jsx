@@ -1,9 +1,49 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import secondaryLogoWhite from '../assets/Logo/secondary_logo_white.png';
 import StickyNavbar from '../components/Navbar';
 import LoginPerson from '../assets/Image/Login_person.png';
 import { signUp } from '../api/auth';
 import { getToken } from '../utils/tokenManager';
+
+// --- Layer 1: Rate Limiting (semua attempt, sukses + gagal) ---
+const SIGNUP_STORAGE_KEY = 'signupAttempts';
+const SIGNUP_MAX_ATTEMPTS = 3;
+const SIGNUP_WINDOW = 30 * 60_000; // 30 menit
+
+const getSignupAttempts = () => {
+  try {
+    const stored = JSON.parse(localStorage.getItem(SIGNUP_STORAGE_KEY));
+    if (!stored) return { timestamps: [] };
+    // Bersihkan timestamp yang sudah expired
+    const now = Date.now();
+    const valid = (stored.timestamps || []).filter(t => now - t < SIGNUP_WINDOW);
+    return { timestamps: valid };
+  } catch {
+    return { timestamps: [] };
+  }
+};
+
+const addSignupAttempt = () => {
+  const stored = getSignupAttempts();
+  stored.timestamps.push(Date.now());
+  localStorage.setItem(SIGNUP_STORAGE_KEY, JSON.stringify(stored));
+};
+
+const isSignupLimited = () => {
+  const { timestamps } = getSignupAttempts();
+  return timestamps.length >= SIGNUP_MAX_ATTEMPTS;
+};
+
+const getSignupCooldown = () => {
+  const { timestamps } = getSignupAttempts();
+  if (timestamps.length < SIGNUP_MAX_ATTEMPTS) return 0;
+  const oldest = timestamps[timestamps.length - SIGNUP_MAX_ATTEMPTS];
+  const remaining = SIGNUP_WINDOW - (Date.now() - oldest);
+  return Math.max(0, remaining);
+};
+
+// --- Layer 3: Timing Check ---
+const MIN_FILL_TIME = 3000; // 3 detik minimum untuk isi form
 
 const SignUp = () => {
   const [form, setForm] = useState({
@@ -16,15 +56,44 @@ const SignUp = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [animatePage, setAnimatePage] = useState(false);
+  const [cooldownText, setCooldownText] = useState('');
 
-  React.useEffect(() => {
+  // Layer 2: Honeypot
+  const [honeypot, setHoneypot] = useState('');
+
+  // Layer 3: Timing — catat waktu mount
+  const mountTime = useRef(Date.now());
+
+  useEffect(() => {
     setTimeout(() => setAnimatePage(true), 50);
+
+    if (getToken()) {
+      window.location.href = '/';
+    }
   }, []);
 
-  if (getToken()) {
-    window.location.href = '/';
-    return null;
-  }
+  // Countdown timer untuk rate limit cooldown
+  useEffect(() => {
+    const cooldown = getSignupCooldown();
+    if (cooldown <= 0) {
+      setCooldownText('');
+      return;
+    }
+
+    const updateCooldown = () => {
+      const remaining = getSignupCooldown();
+      if (remaining <= 0) {
+        setCooldownText('');
+        return;
+      }
+      const minutes = Math.ceil(remaining / 60_000);
+      setCooldownText(`Terlalu banyak percobaan registrasi. Coba lagi dalam ${minutes} menit.`);
+    };
+
+    updateCooldown();
+    const interval = setInterval(updateCooldown, 30_000);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleChange = e => {
     setForm({ ...form, [e.target.id]: e.target.value });
@@ -32,8 +101,30 @@ const SignUp = () => {
 
   const handleSubmit = async e => {
     e.preventDefault();
+
+    // Layer 2: Honeypot check — bot isi field tersembunyi
+    if (honeypot) return;
+
+    // Layer 3: Timing check — terlalu cepat = bot
+    if (Date.now() - mountTime.current < MIN_FILL_TIME) {
+      setError('Terlalu cepat. Silakan isi form dengan lengkap.');
+      return;
+    }
+
+    // Layer 1: Rate limiting check
+    if (isSignupLimited()) {
+      const minutes = Math.ceil(getSignupCooldown() / 60_000);
+      setCooldownText(`Terlalu banyak percobaan registrasi. Coba lagi dalam ${minutes} menit.`);
+      setError(`Terlalu banyak percobaan registrasi. Coba lagi dalam ${minutes} menit.`);
+      return;
+    }
+
     setLoading(true);
     setError('');
+
+    // Catat attempt (sukses maupun gagal)
+    addSignupAttempt();
+
     try {
       const res = await signUp({ ...form });
       if (res.data && res.data.status === 'success') {
@@ -92,6 +183,20 @@ const SignUp = () => {
           </div>
 
           <form className="space-y-4 w-full max-w-md mx-auto" onSubmit={handleSubmit}>
+            {/* Layer 2: Honeypot — hidden field, invisible to real users */}
+            <div aria-hidden="true" style={{ position: 'absolute', left: '-9999px', opacity: 0, height: 0, overflow: 'hidden' }}>
+              <label htmlFor="website">Website</label>
+              <input
+                type="text"
+                id="website"
+                name="website"
+                tabIndex={-1}
+                autoComplete="off"
+                value={honeypot}
+                onChange={e => setHoneypot(e.target.value)}
+              />
+            </div>
+
             <div>
               <label htmlFor="uEmail" className="block text-gray-700 text-sm font-medium mb-1">Alamat email <span className="text-red-500 ml-1">*</span></label>
               <input type="email" id="uEmail" name="uEmail" placeholder="Alamat email" className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-secondaryColor" value={form.uEmail} onChange={handleChange} required />
@@ -118,10 +223,10 @@ const SignUp = () => {
               <input type="password" id="uPassword" name="uPassword" placeholder="Password" className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-secondaryColor" value={form.uPassword} onChange={handleChange} required />
             </div>
 
-            <button type="submit" className="w-full bg-primaryColor text-white py-3 rounded-md font-semibold hover:bg-[#2a5560] transition-colors" disabled={loading}>
-              {loading ? 'Loading...' : 'Sign up'}
+            <button type="submit" className="w-full bg-primaryColor text-white py-3 rounded-md font-semibold hover:bg-[#2a5560] transition-colors disabled:opacity-50 disabled:cursor-not-allowed" disabled={loading || !!cooldownText}>
+              {loading ? 'Loading...' : cooldownText ? 'Coba lagi nanti...' : 'Sign up'}
             </button>
-            {error && <div className="text-red-500 text-sm text-center mt-2">{error}</div>}
+            {(error || cooldownText) && <div className="text-red-500 text-sm text-center mt-2">{error || cooldownText}</div>}
           </form>
         </div>
       </div>

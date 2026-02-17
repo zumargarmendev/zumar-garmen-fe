@@ -1,24 +1,26 @@
-// Token Manager Utility
-// Handle token storage and retrieval across different domains
 
 /**
- * Save token to multiple storage locations
+ * Check if a JWT token is expired
+ * @param {string} token - JWT token string
+ * @returns {boolean} - True if token is expired or invalid
+ */
+const isTokenExpired = (token) => {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return payload.exp <= Date.now() / 1000;
+  } catch {
+    return true;
+  }
+};
+
+/**
+ * Save token to localStorage
  * @param {string} token - JWT token
+ * @returns {boolean} - True if saved successfully
  */
 export const saveToken = (token) => {
   try {
-    // Save to localStorage
     localStorage.setItem('token', token);
-    
-    // Save to sessionStorage
-    sessionStorage.setItem('token', token);
-    
-    // Save to URL params for ngrok sharing
-    const url = new URL(window.location);
-    url.searchParams.set('token', token);
-    window.history.replaceState({}, '', url);
-    
-    console.log('Token saved to all storage locations');
     return true;
   } catch (error) {
     console.error('Error saving token:', error);
@@ -27,25 +29,20 @@ export const saveToken = (token) => {
 };
 
 /**
- * Get token from multiple storage locations
- * @returns {string|null} - JWT token or null
+ * Get token from localStorage
+ * Returns null if token doesn't exist or is expired
+ * @returns {string|null} - Valid JWT token or null
  */
 export const getToken = () => {
   try {
-    // Try localStorage first
-    let token = localStorage.getItem('token');
-    
-    // If no token in localStorage, try sessionStorage
-    if (!token) {
-      token = sessionStorage.getItem('token');
+    const token = localStorage.getItem('token');
+    if (!token) return null;
+
+    if (isTokenExpired(token)) {
+      removeToken();
+      return null;
     }
-    
-    // If still no token, try URL params
-    if (!token) {
-      const urlParams = new URLSearchParams(window.location.search);
-      token = urlParams.get('token');
-    }
-    
+
     return token;
   } catch (error) {
     console.error('Error getting token:', error);
@@ -54,58 +51,34 @@ export const getToken = () => {
 };
 
 /**
- * Remove token from all storage locations
+ * Remove token from localStorage
  */
 export const removeToken = () => {
   try {
-    // Remove from localStorage
     localStorage.removeItem('token');
-    
-    // Remove from sessionStorage
-    sessionStorage.removeItem('token');
-    
-    // Remove from URL params
-    const url = new URL(window.location);
-    url.searchParams.delete('token');
-    window.history.replaceState({}, '', url);
-    
-    console.log('Token removed from all storage locations');
   } catch (error) {
     console.error('Error removing token:', error);
   }
 };
 
 /**
- * Check if token exists and is valid
- * @returns {boolean} - True if token exists
+ * Check if a valid (non-expired) token exists
+ * @returns {boolean} - True if valid token exists
  */
 export const hasValidToken = () => {
-  const token = getToken();
-  if (!token) return false;
-  
-  try {
-    // Basic JWT validation (check if it's not expired)
-    const payload = JSON.parse(atob(token.split('.')[1]));
-    const currentTime = Date.now() / 1000;
-    
-    return payload.exp > currentTime;
-  } catch (error) {
-    console.error('Error validating token:', error);
-    return false;
-  }
+  return getToken() !== null;
 };
 
 /**
- * Get token info (decoded payload)
+ * Get decoded token payload
  * @returns {object|null} - Decoded token payload or null
  */
 export const getTokenInfo = () => {
   const token = getToken();
   if (!token) return null;
-  
+
   try {
-    const payload = JSON.parse(atob(token.split('.')[1]));
-    return payload;
+    return JSON.parse(atob(token.split('.')[1]));
   } catch (error) {
     console.error('Error decoding token:', error);
     return null;

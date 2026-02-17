@@ -1,15 +1,32 @@
-import { useMemo } from 'react';
-import { hasPermission, getUserPermissions } from '../api/auth';
-export const usePermission = (permission) => {
-    return useMemo(() => hasPermission(permission), [permission]);
-};
-export const usePermissions = () => {
-    const permissions = useMemo(() => getUserPermissions(), []);
+import { useContext, useCallback } from 'react';
+import { PermissionContext } from '../context/PermissionContext';
 
-    return useMemo(() => ({
-        all: permissions,
-        can: (perm) => hasPermission(perm),
-        canAny: (perms) => perms.some(p => hasPermission(p)),
-        canAll: (perms) => perms.every(p => hasPermission(p))
-    }), [permissions]);
-};
+export function usePermissions() {
+  const { permissions, loading, refreshPermissions } = useContext(PermissionContext);
+
+  const can = useCallback((permission) => {
+    return permissions.includes(permission);
+  }, [permissions]);
+
+  const canAny = useCallback((requiredPermissions) => {
+    return requiredPermissions.some((perm) => can(perm));
+  }, [can]);
+
+  const canAll = useCallback((requiredPermissions) => {
+    return requiredPermissions.every((perm) => can(perm));
+  }, [can]);
+
+  return {
+    all: permissions,
+    loading,
+    refresh: refreshPermissions,
+    can,
+    canAny,
+    canAll,
+  };
+}
+
+export function usePermission(permission) {
+  const { can } = usePermissions();
+  return can(permission);
+}

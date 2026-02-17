@@ -16,7 +16,7 @@ import {
 import AdminNavbar from "../../components/AdminNavbar";
 import AdminSidebar from "../../components/AdminSidebar";
 import Pagination from "../../components/Pagination";
-import { hasPermission } from '../../../api/auth';
+import { usePermissions } from '../../../utils/usePermission';
 import BackgroundImage from '../../../assets/background/bg-zumar.png';
 
 function ActionDropdown({ onEditRab, onDelete, canEdit, canDelete }) {
@@ -92,6 +92,7 @@ function ActionDropdown({ onEditRab, onDelete, canEdit, canDelete }) {
 }
 
 export default function RABTemplateList() {
+  const { can } = usePermissions();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -261,7 +262,7 @@ export default function RABTemplateList() {
               </div>
             </form> */}
 
-              {hasPermission('rab.template.create') && (
+              {can('rab.template.create') && (
                 <button
                   type="button"
                   className="ml-auto bg-[#E87722] hover:bg-[#d96c1f] text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 flex-shrink-0"
@@ -352,8 +353,8 @@ export default function RABTemplateList() {
                                     "Apakah Anda yakin ingin menghapus template ini?",
                                 })
                               }
-                              canEdit={hasPermission('rab.template.edit')}
-                              canDelete={hasPermission('rab.template.delete')}
+                              canEdit={can('rab.template.edit')}
+                              canDelete={can('rab.template.delete')}
                             />
                           </td>
                         </tr>
