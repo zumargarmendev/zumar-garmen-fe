@@ -3,7 +3,6 @@ import muslimImage from "../assets/Slider/Katalog_Sec_1_BM.jpg";
 import medisImage from "../assets/Slider/Katalog_Sec_1_Medis.jpg";
 import apparelImage from "../assets/Slider/Katalog_Sec_1_Apparel.jpg";
 import nonApparelImage from "../assets/Slider/Katalog_Sec_1_Non-Apparel.jpg";
-import secondaryLogoWhite from "../assets/Logo/secondary_logo_white.png";
 import StickyNavbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import Sidebar from "../components/Sidebar";
@@ -16,40 +15,28 @@ import BackgroundImage from '../assets/background/bg-zumar.png';
 const catalogSlides = [
   {
     id: 1,
-    title: "",
-    description: "",
+    title: "Busana Muslim",
     image: muslimImage,
   },
   {
     id: 2,
-    title: "",
-    description: "",
+    title: "Medis",
     image: medisImage,
   },
   {
     id: 3,
-    title: "",
-    description: "",
+    title: "Apparel",
     image: apparelImage,
   },
   {
     id: 4,
-    title: "",
-    description: "",
+    title: "Non-Apparel",
     image: nonApparelImage,
   },
-  // Tambahkan slide lain jika perlu
 ];
 
 const PRODUCTS_PER_PAGE = 6;
 
-function rightContent() {
-  return (
-    <div className="relative w-full h-full">
-      <img src={secondaryLogoWhite} alt="Zumar Logo" className="w-48 absolute bottom-8 right-8" />
-    </div>
-  );
-}
 
 function ProductGrid({ products, animate }) {
   // State untuk menyimpan transformasi tilt tiap card
@@ -291,7 +278,14 @@ export default function Catalog() {
   return (
     <>
       <StickyNavbar />
-      <Carousel slides={catalogSlides} rightContent={rightContent} navigationPosition="center" height="h-[60vh]" />
+      <Carousel
+        slides={catalogSlides}
+        navigationPosition="center"
+        height="h-auto md:h-[60vh]"
+        showLogo={true}
+        logoSrc={null} // TODO: ganti dengan import logo setelah file tersedia, contoh: logoSrc={zumarApparelsLogo}
+        alwaysShowTitle={true}
+      />
       <div
         className="flex flex-col md:flex-row gap-6 max-w-7xl mx-auto px-4 py-8"
         style={{

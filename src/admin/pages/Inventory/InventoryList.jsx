@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState, useRef } from 'react';
+import React, { useCallback, useEffect, useState, useRef, useMemo } from 'react';
 import { MagnifyingGlassIcon, PlusIcon, XCircleIcon, ChevronDownIcon, ArrowUpTrayIcon } from '@heroicons/react/24/solid';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { getInventories, deleteInventory, downloadInventoryTemplate, massUploadInventory } from '../../../api/Inventory/inventory';
@@ -176,14 +176,13 @@ const InventoryList = () => {
   const { can } = usePermissions();
   const navigate = useNavigate();
   const location = useLocation();
-  const [inventories, setInventories] = useState([]);
+  const [allInventories, setAllInventories] = useState([]);
   const [categories, setCategories] = useState([]);
   const [subCategories, setSubCategories] = useState([]);
   const [warehouses, setWarehouses] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [page, setPage] = useState(1);
-  const [totalPage, setTotalPage] = useState(1);
   const [search, setSearch] = useState('');
   const [searchInput, setSearchInput] = useState('');
 
@@ -247,11 +246,11 @@ const InventoryList = () => {
     ]
   };
 
-  const fetchData = useCallback(async (goToPage, currentSearch, categoryFilter, subCategoryFilter) => {
+  const fetchData = useCallback(async (currentSearch, categoryFilter, subCategoryFilter) => {
     setLoading(true);
     setError('');
     try {
-      const params = { pageLimit: PAGE_LIMIT, pageNumber: goToPage };
+      const params = { pageLimit: -1 };
       if (currentSearch) {
         params.search = currentSearch;
       }
@@ -262,27 +261,22 @@ const InventoryList = () => {
         params.filterIsId = subCategoryFilter;
       }
       const res = await getInventories(params);
-      console.log('Fetched inventories:', res.data);
       const inventoriesData = Array.isArray(res.data.data.listData) ? res.data.data.listData : [];
-      setInventories(inventoriesData);
-
-      // Extract pagination info from response - check both possible locations
-      const pagination = res.data.pagination || res.data.data?.pagination || {};
-      const pageLast = pagination.pageLast || 1;
-
-      setTotalPage(Math.max(1, pageLast)); // Ensure at least 1 page
-
-      console.log('Inventories set:', inventoriesData.length, 'items');
-      console.log('Total pages:', pageLast);
-      console.log('Current page:', goToPage);
-      console.log('Page limit:', PAGE_LIMIT);
-      console.log('Full pagination object:', pagination);
-    } catch (err) {
-      console.error('Error fetching inventories:', err);
+      // Sort by iId ascending untuk memastikan urutan benar
+      inventoriesData.sort((a, b) => a.iId - b.iId);
+      setAllInventories(inventoriesData);
+    } catch {
       setError('Gagal memuat data inventory');
     }
     setLoading(false);
   }, []);
+
+  // Client-side pagination: derive current page items & totalPage from allInventories
+  const totalPage = useMemo(() => Math.max(1, Math.ceil(allInventories.length / PAGE_LIMIT)), [allInventories]);
+  const inventories = useMemo(() => {
+    const start = (page - 1) * PAGE_LIMIT;
+    return allInventories.slice(start, start + PAGE_LIMIT);
+  }, [allInventories, page]);
 
   const fetchDropdownData = useCallback(async () => {
     try {
@@ -300,8 +294,8 @@ const InventoryList = () => {
   }, []);
 
   useEffect(() => {
-    fetchData(page, search, selectedCategory, selectedSubCategory);
-  }, [page, search, selectedCategory, selectedSubCategory, fetchData]);
+    fetchData(search, selectedCategory, selectedSubCategory);
+  }, [search, selectedCategory, selectedSubCategory, fetchData]);
 
   useEffect(() => {
     fetchDropdownData();
@@ -314,15 +308,11 @@ const InventoryList = () => {
   };
 
   const handlePageChange = (newPage) => {
-    console.log('handlePageChange called with:', newPage, 'totalPage:', totalPage);
     if (newPage >= 1 && newPage <= totalPage) {
       setPage(newPage);
-      // Update URL with page parameter
       const params = new URLSearchParams(location.search);
       params.set('page', newPage.toString());
       navigate(`${location.pathname}?${params.toString()}`, { replace: true });
-    } else {
-      console.warn('Invalid page number:', newPage, 'totalPage:', totalPage);
     }
   };
 
@@ -338,15 +328,15 @@ const InventoryList = () => {
       await deleteInventory(deletingInventory.iId);
       setShowDeleteModal(false);
 
+      // Cek apakah halaman saat ini akan kosong setelah delete
       const currentPageData = inventories.filter(inv => inv.iId !== deletingInventory.iId);
-
       if (currentPageData.length === 0 && page > 1) {
-        handlePageChange(page - 1);
-      } else {
-        fetchData(page, search, selectedCategory, selectedSubCategory);
+        setPage(page - 1);
       }
-    } catch (err) {
-      console.error("Failed to delete inventory", err);
+
+      fetchData(search, selectedCategory, selectedSubCategory);
+    } catch {
+      setError('Gagal menghapus data inventory');
     }
     setFormLoading(false);
   };
@@ -422,62 +412,30 @@ const InventoryList = () => {
     setTransferLoading(true);
     setTransferMessage('');
 
-    // Validasi value dengan lebih ketat
     const iId = parseInt(transferInventory?.iId, 10);
     const iCode = transferInventory?.iCode?.toString().trim();
     const iwIdTo = parseInt(transferForm?.iwId, 10);
     const irAmount = parseFloat(transferResult?.irAmount);
 
-    // Debug log tipe data
-    console.log('Raw transferInventory:', transferInventory);
-    console.log('Raw transferForm:', transferForm);
-    console.log('Raw transferResult:', transferResult);
-    console.log('Parsed values:');
-    console.log('iId:', iId, typeof iId);
-    console.log('iCode:', iCode, typeof iCode);
-    console.log('iwIdTo:', iwIdTo, typeof iwIdTo);
-    console.log('irAmount:', irAmount, typeof irAmount);
-
-    // Validasi yang lebih ketat
     if (
       !iId || iId <= 0 ||
       !iCode || iCode === '' ||
       !iwIdTo || iwIdTo <= 0 ||
       !irAmount || irAmount <= 0 || isNaN(irAmount)
     ) {
-      console.error('Validation failed:');
-      console.error('iId valid:', !iId || iId <= 0 ? false : true);
-      console.error('iCode valid:', !iCode || iCode === '' ? false : true);
-      console.error('iwIdTo valid:', !iwIdTo || iwIdTo <= 0 ? false : true);
-      console.error('irAmount valid:', !irAmount || irAmount <= 0 || isNaN(irAmount) ? false : true);
       setTransferMessage('Semua field harus diisi dengan benar!');
       setTransferLoading(false);
       return;
     }
 
-    // Pastikan payload sesuai dengan dokumentasi API
-    const payload = {
-      iId: iId,
-      iCode: iCode,
-      iwIdTo: iwIdTo,
-      irAmount: irAmount
-    };
-
-    console.log('Final payload transfer:', payload);
-    console.log('Payload JSON:', JSON.stringify(payload));
+    const payload = { iId, iCode, iwIdTo, irAmount };
 
     try {
-      const response = await createInventoryRelocation(payload);
-      console.log('Transfer response:', response);
+      await createInventoryRelocation(payload);
       setTransferMessage('Transfer berhasil di-hold, menunggu approval.');
       setShowTransferModal(false);
-      fetchData(page, search, selectedCategory, selectedSubCategory);
+      fetchData(search, selectedCategory, selectedSubCategory);
     } catch (err) {
-      console.error('Transfer error:', err);
-      console.error('Error response:', err.response);
-      console.error('Error data:', err.response?.data);
-      console.error('Error status:', err.response?.status);
-      console.error('Error headers:', err.response?.headers);
       setTransferMessage(err.response?.data?.remark || err.response?.data?.message || 'Gagal melakukan transfer');
     }
     setTransferLoading(false);
@@ -777,8 +735,7 @@ const InventoryList = () => {
             title="Mass Upload Inventory"
             templateFileName="Inventory_Upload_Template.xlsx"
             onUploadSuccess={() => {
-              // Refresh list after successful upload
-              fetchData(page, search, selectedCategory, selectedSubCategory);
+              fetchData(search, selectedCategory, selectedSubCategory);
             }}
           />
         </div>
