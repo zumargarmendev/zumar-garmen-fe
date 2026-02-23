@@ -120,6 +120,7 @@ const AddCatalogue = () => {
   const handleAddProduct = async (e) => {
     e.preventDefault();
     setFormError("");
+
     // Validasi gambar wajib diupload
     if (!newProduct.cpImage || newProduct.cpImage.length === 0) {
       setFormError("Gambar produk wajib diupload!");
@@ -139,7 +140,7 @@ const AddCatalogue = () => {
 
     setLoading(true);
     try {
-      // 1. Upload gambar dulu
+      // 1. Upload gambar jika ada
       let imageUrls = [];
       if (newProduct.cpImage && newProduct.cpImage.length > 0) {
         try {
@@ -157,16 +158,19 @@ const AddCatalogue = () => {
         cpName: newProduct.cpName,
         cpDescription: newProduct.cpDescription,
         cpSnk: newProduct.cpSnk,
-        cpImage: imageUrls, // array of URL
-        cpIsItems: newProduct.cpIsItems.filter(
-          (item) => item.isId && item.price >= 0,
-        ),
+        cpImage: imageUrls,
+        cpIsItems: newProduct.cpIsItems
+          .filter((item) => item.isId && item.price >= 0)
+          .map((item) => ({ ...item, price: Number(item.price) })),
       };
 
-      console.log("AddCatalogue - Full payload:", payload);
-
       const response = await createCatalogueProduct(payload);
-      console.log("AddCatalogue - Create response:", response.data);
+      if (response.data?.httpCode !== 200 && response.data?.status !== "success") {
+        setFormError(response.data?.remark || "Gagal menambah produk");
+        setLoading(false);
+        return;
+      }
+      toast.success("Produk berhasil ditambahkan!");
       navigate("/admin/catalogue/list");
     } catch (err) {
       setFormError(
@@ -495,7 +499,7 @@ const AddCatalogue = () => {
                                 const updatedItems = [...newProduct.cpIsItems];
                                 updatedItems[index] = {
                                   ...updatedItems[index],
-                                  price: e.target.value,
+                                  price: e.target.value === "" ? "" : Number(e.target.value),
                                 };
                                 setNewProduct({
                                   ...newProduct,
