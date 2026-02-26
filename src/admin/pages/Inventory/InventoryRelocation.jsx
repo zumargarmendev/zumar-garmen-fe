@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+import React, { useEffect, useMemo, useState, useRef, useCallback } from 'react';
 import { ChevronDownIcon, CheckIcon, XMarkIcon, EyeIcon, MagnifyingGlassIcon, XCircleIcon } from '@heroicons/react/24/solid';
 import { getInventoryRelocations, approveInventoryRelocation, rejectInventoryRelocation } from '../../../api/Inventory/inventoryRelocation';
 import { getWarehouses } from '../../../api/Inventory/inventoryWarehouse';
@@ -13,7 +13,7 @@ const PAGE_LIMIT = 10;
 
 const InventoryRelocation = () => {
   const { can } = usePermissions();
-  const [relocations, setRelocations] = useState([]);
+  const [allRelocations, setAllRelocations] = useState([]);
   const [warehouses, setWarehouses] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -21,7 +21,6 @@ const InventoryRelocation = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   // Pagination & filter states
   const [page, setPage] = useState(1);
-  const [totalPage, setTotalPage] = useState(1);
   const [search, setSearch] = useState('');
   const [searchInput, setSearchInput] = useState('');
   const [searchExpanded, setSearchExpanded] = useState(false);
@@ -46,34 +45,39 @@ const InventoryRelocation = () => {
     }
   }, []);
 
-  // Fetch relocations with filters
-  const fetchRelocations = useCallback(async () => {
+  // Fetch all relocations with filters
+  const fetchRelocations = useCallback(async (currentSearch, warehouseFrom, warehouseTo) => {
     setLoading(true);
     setError('');
     try {
-      const params = { pageLimit: PAGE_LIMIT, pageNumber: page };
-      if (search) params.search = search;
-      if (selectedWarehouseFrom) params.filterIwIdFrom = selectedWarehouseFrom;
-      if (selectedWarehouseTo) params.filterIwIdTo = selectedWarehouseTo;
+      const params = { pageLimit: -1 };
+      if (currentSearch) params.search = currentSearch;
+      if (warehouseFrom) params.filterIwIdFrom = warehouseFrom;
+      if (warehouseTo) params.filterIwIdTo = warehouseTo;
       const res = await getInventoryRelocations(params);
-      setRelocations(Array.isArray(res.data.data.listData) ? res.data.data.listData : []);
-      // Ambil pagination seperti di InventoryList
-      const pagination = res.data.pagination || res.data.data?.pagination || {};
-      const pageLast = pagination.pageLast || 1;
-      setTotalPage(Math.max(1, pageLast));
+      const data = Array.isArray(res.data.data.listData) ? res.data.data.listData : [];
+      data.sort((a, b) => a.irId - b.irId);
+      setAllRelocations(data);
     } catch {
       setError('Gagal memuat data transfer inventory');
     }
     setLoading(false);
-  }, [page, search, selectedWarehouseFrom, selectedWarehouseTo]);
+  }, []);
 
   useEffect(() => {
     fetchWarehouses();
   }, [fetchWarehouses]);
 
+  // Client-side pagination
+  const totalPage = useMemo(() => Math.max(1, Math.ceil(allRelocations.length / PAGE_LIMIT)), [allRelocations]);
+  const relocations = useMemo(() => {
+    const start = (page - 1) * PAGE_LIMIT;
+    return allRelocations.slice(start, start + PAGE_LIMIT);
+  }, [allRelocations, page]);
+
   useEffect(() => {
-    fetchRelocations();
-  }, [fetchRelocations]);
+    fetchRelocations(search, selectedWarehouseFrom, selectedWarehouseTo);
+  }, [search, selectedWarehouseFrom, selectedWarehouseTo, fetchRelocations]);
 
   // Handlers for search and pagination
   const handleSearch = (e) => {
@@ -194,7 +198,7 @@ const InventoryRelocation = () => {
   const handleApprove = async (relocation, receivedBy) => {
     try {
       await approveInventoryRelocation(relocation.irId, receivedBy);
-      await fetchRelocations();
+      await fetchRelocations(search, selectedWarehouseFrom, selectedWarehouseTo);
     } catch (err) {
       console.error('Failed to approve relocation:', err);
     }
@@ -204,7 +208,7 @@ const InventoryRelocation = () => {
   const handleReject = async (relocation) => {
     try {
       await rejectInventoryRelocation(relocation.irId);
-      await fetchRelocations();
+      await fetchRelocations(search, selectedWarehouseFrom, selectedWarehouseTo);
     } catch (err) {
       console.error('Failed to reject relocation:', err);
     }

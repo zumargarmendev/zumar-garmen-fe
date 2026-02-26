@@ -241,6 +241,7 @@ const RABItem = ({
   isSaving,
   formRef,
 }) => {
+  const { can } = usePermissions();
   const [selectedInventory, setSelectedInventory] = useState(null);
   const [isFieldLocked, setIsFieldLocked] = useState(
     !!item.ocbpMaterialNeed ||

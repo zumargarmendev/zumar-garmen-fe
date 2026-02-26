@@ -1,10 +1,9 @@
 import AdminSidebar from '../../components/AdminSidebar';
 import AdminNavbar from '../../components/AdminNavbar';
 import Pagination from '../../components/Pagination';
-import React, { useCallback, useEffect, useState, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { MagnifyingGlassIcon, PlusIcon, XCircleIcon, ChevronDownIcon } from '@heroicons/react/24/solid';
 import { getWarehouses, createWarehouse, updateWarehouse, deleteWarehouse } from '../../../api/Inventory/inventoryWarehouse';
-import { getToken } from '../../../utils/tokenManager';
 import { usePermissions } from '../../../utils/usePermission';
 import BackgroundImage from '../../../assets/background/bg-zumar.png';
 
@@ -103,11 +102,10 @@ function ActionDropdown({ onEdit, onDelete, canEdit, canDelete }) {
 
 const WarehouseList = () => {
   const { can } = usePermissions();
-  const [warehouses, setWarehouses] = useState([]);
+  const [allWarehouses, setAllWarehouses] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [page, setPage] = useState(1);
-  const [totalPage, setTotalPage] = useState(1);
   const [search, setSearch] = useState('');
   const [searchInput, setSearchInput] = useState('');
 
@@ -135,32 +133,34 @@ const WarehouseList = () => {
   // State for search expansion
   const [searchExpanded, setSearchExpanded] = useState(false);
 
-  const fetchData = useCallback(async (goToPage) => {
+  const fetchData = useCallback(async (currentSearch) => {
     setLoading(true);
     setError('');
     try {
-      const token = getToken();
-      if (!token) {
-        setError('Anda harus login terlebih dahulu');
-        setLoading(false);
-        return;
+      const params = { pageLimit: -1 };
+      if (currentSearch) {
+        params.search = currentSearch;
       }
-      const res = await getWarehouses({ pageLimit: PAGE_LIMIT, pageNumber: goToPage, search });
-      const resData = res?.data?.data || {};
-      setWarehouses(Array.isArray(resData.listData) ? resData.listData : []);
-      const pagination = res.data.pagination || resData.pagination || {};
-      const pageLast = pagination.pageLast || 1;
-      setTotalPage(Math.max(1, pageLast));
-      setPage(goToPage);
+      const res = await getWarehouses(params);
+      const data = Array.isArray(res?.data?.data?.listData) ? res.data.data.listData : [];
+      data.sort((a, b) => a.iwId - b.iwId);
+      setAllWarehouses(data);
     } catch {
       setError('Gagal memuat data warehouse');
     }
     setLoading(false);
-  }, [search]);
+  }, []);
+
+  // Client-side pagination
+  const totalPage = useMemo(() => Math.max(1, Math.ceil(allWarehouses.length / PAGE_LIMIT)), [allWarehouses]);
+  const warehouses = useMemo(() => {
+    const start = (page - 1) * PAGE_LIMIT;
+    return allWarehouses.slice(start, start + PAGE_LIMIT);
+  }, [allWarehouses, page]);
 
   useEffect(() => {
-    fetchData(page);
-  }, [page, fetchData]);
+    fetchData(search);
+  }, [search, fetchData]);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -176,10 +176,7 @@ const WarehouseList = () => {
       await createWarehouse({ iwName: newName });
       setShowAddModal(false);
       setNewName('');
-      // Fetch data and go to the last page to see the new item
-      const res = await getWarehouses({ pageLimit: PAGE_LIMIT, pageNumber: 1, search: '' });
-      const lastPage = res?.data?.data?.pagination?.pageLast || 1;
-      fetchData(lastPage);
+      fetchData(search);
     } catch (err) {
       const errorMessage = err.response?.data?.remark || 'Gagal menambah warehouse';
       setFormError(errorMessage);
@@ -203,7 +200,7 @@ const WarehouseList = () => {
       await updateWarehouse(editingWarehouse.iwId, { iwName: editedName });
       setShowEditModal(false);
       setEditingWarehouse(null);
-      fetchData(page); // Refresh current page
+      fetchData(search);
     } catch (err) {
       const errorMessage = err.response?.data?.remark || 'Gagal mengubah warehouse';
       setFormError(errorMessage);
@@ -223,7 +220,14 @@ const WarehouseList = () => {
       await deleteWarehouse(deletingWarehouse.iwId);
       setShowDeleteModal(false);
       setDeletingWarehouse(null);
-      fetchData(page); // Refresh current page
+
+      // Cek apakah halaman saat ini akan kosong setelah delete
+      const currentPageData = warehouses.filter(wh => wh.iwId !== deletingWarehouse.iwId);
+      if (currentPageData.length === 0 && page > 1) {
+        setPage(page - 1);
+      }
+
+      fetchData(search);
     } catch (err) {
       // Tambahkan log error detail dari backend
       console.error("Failed to delete warehouse", err, err.response?.data);
@@ -334,7 +338,11 @@ const WarehouseList = () => {
           <Pagination
             currentPage={page}
             totalPages={totalPage}
-            onPageChange={setPage}
+            onPageChange={(newPage) => {
+              if (newPage >= 1 && newPage <= totalPage) {
+                setPage(newPage);
+              }
+            }}
           />
 
           {/* Add Modal */}

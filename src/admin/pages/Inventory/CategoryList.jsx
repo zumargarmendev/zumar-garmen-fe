@@ -4,14 +4,13 @@ import {
   PlusIcon,
   XCircleIcon,
 } from "@heroicons/react/24/solid";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   createInventoryCategory,
   deleteInventoryCategory,
   getInventoryCategories,
   updateInventoryCategory,
 } from "../../../api/Inventory/inventoryCategory";
-import { getToken } from '../../../utils/tokenManager';
 import { usePermissions } from '../../../utils/usePermission';
 import AdminNavbar from "../../components/AdminNavbar";
 import AdminSidebar from "../../components/AdminSidebar";
@@ -126,11 +125,10 @@ function ActionDropdown({ onEdit, onDelete, canEdit, canDelete }) {
 
 const CategoryList = () => {
   const { can } = usePermissions();
-  const [categories, setCategories] = useState([]);
+  const [allCategories, setAllCategories] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [page, setPage] = useState(1);
-  const [totalPage, setTotalPage] = useState(1);
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
   const [searchExpanded, setSearchExpanded] = useState(false);
@@ -155,37 +153,38 @@ const CategoryList = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const fetchData = useCallback(
-    async (goToPage) => {
+    async (currentSearch) => {
       setLoading(true);
       setError("");
       try {
-        const res = await getInventoryCategories({
-          pageLimit: PAGE_LIMIT,
-          pageNumber: goToPage,
-          search,
-        });
-        // The category API returns data in res.data.data.listData
+        const params = { pageLimit: -1 };
+        if (currentSearch) {
+          params.search = currentSearch;
+        }
+        const res = await getInventoryCategories(params);
         const categoriesData = Array.isArray(res.data.data.listData)
           ? res.data.data.listData
           : [];
-        setCategories(categoriesData);
-
-        const pagination =
-          res.data.pagination || res.data.data?.pagination || {};
-        const pageLast = pagination.pageLast || 1;
-        setTotalPage(Math.max(1, pageLast));
-        setPage(goToPage);
+        categoriesData.sort((a, b) => a.icId - b.icId);
+        setAllCategories(categoriesData);
       } catch {
         setError("Gagal memuat data kategori");
       }
       setLoading(false);
     },
-    [search],
+    [],
   );
 
+  // Client-side pagination
+  const totalPage = useMemo(() => Math.max(1, Math.ceil(allCategories.length / PAGE_LIMIT)), [allCategories]);
+  const categories = useMemo(() => {
+    const start = (page - 1) * PAGE_LIMIT;
+    return allCategories.slice(start, start + PAGE_LIMIT);
+  }, [allCategories, page]);
+
   useEffect(() => {
-    fetchData(1); // Always fetch page 1 on initial load
-  }, [fetchData]);
+    fetchData(search);
+  }, [search, fetchData]);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -206,17 +205,10 @@ const CategoryList = () => {
       setNewCategoryName("");
       setNewCategoryType(1); // Reset to default
 
-      // Reset search to ensure new item is visible
+      // Reset search and re-fetch
       setSearch("");
       setSearchInput("");
-
-      // Refresh data to show the new category
-      // Go to page 1 to see the new item
-      if (page !== 1) {
-        setPage(1);
-      } else {
-        fetchData(1);
-      }
+      fetchData("");
     } catch (err) {
       setFormError(err.response?.data?.remark || "Gagal menambah kategori");
     }
@@ -242,8 +234,7 @@ const CategoryList = () => {
         icType: editedCategoryType,
       });
       setShowEditModal(false);
-      // Refresh current page to show updated data
-      fetchData(page);
+      fetchData(search);
     } catch (err) {
       setFormError(err.response?.data?.remark || "Gagal mengubah kategori");
     }
@@ -262,18 +253,15 @@ const CategoryList = () => {
       await deleteInventoryCategory(deletingCategory.icId);
       setShowDeleteModal(false);
 
-      // After deleting, check if current page still has data
+      // Cek apakah halaman saat ini akan kosong setelah delete
       const currentPageData = categories.filter(
         (cat) => cat.icId !== deletingCategory.icId,
       );
-
-      // If current page becomes empty and we're not on page 1, go to previous page
       if (currentPageData.length === 0 && page > 1) {
         setPage(page - 1);
-      } else {
-        // Otherwise refresh current page
-        fetchData(page);
       }
+
+      fetchData(search);
     } catch (err) {
       console.error("Failed to delete category", err);
     }
@@ -433,7 +421,11 @@ const CategoryList = () => {
           <Pagination
             currentPage={page}
             totalPages={totalPage}
-            onPageChange={setPage}
+            onPageChange={(newPage) => {
+              if (newPage >= 1 && newPage <= totalPage) {
+                setPage(newPage);
+              }
+            }}
           />
 
           {/* Add Modal */}
