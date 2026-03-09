@@ -141,25 +141,6 @@ const tabStyles = {
   tabContent: "p-6 bg-white rounded-b-xl shadow-md",
 };
 
-const getName = (
-  item,
-  nameFields = [
-    "isName",
-    "iCode",
-    "iDescription",
-    "name",
-    "description",
-    "code",
-  ],
-) => {
-  for (const field of nameFields) {
-    if (item[field] !== undefined && item[field] !== null && item[field] !== "")
-      return item[field];
-  }
-  return "Unknown";
-};
-
-
 const RABItemsSection = ({
   summary,
   inventories,
@@ -195,7 +176,10 @@ const RABItemsSection = ({
                   }`}
                 onClick={() => handleTabChange(item)}
               >
-                {`${item.cpName} - Size ${item.sGroup} (${item.ocbpAmount})`}
+                <span className="block">{`${item.cpName} - Size ${item.sGroup} (${item.ocbpAmount})`}</span>
+                {item.isName && (
+                  <span className="block text-xs opacity-80 font-normal">{item.isName}</span>
+                )}
               </button>
               // <button
               //   key={item.ocbpId}
@@ -242,7 +226,6 @@ const RABItem = ({
   formRef,
 }) => {
   const { can } = usePermissions();
-  const [selectedInventory, setSelectedInventory] = useState(null);
   const [isFieldLocked, setIsFieldLocked] = useState(
     !!item.ocbpMaterialNeed ||
     !!item.ocbpMaterialPrice ||
@@ -258,23 +241,27 @@ const RABItem = ({
   };
 
   useEffect(() => {
-    if (inventories.length > 0) {
-      const selectedInventory = inventories.find(
-        (inv) =>
-          getName(inv, ["isName"]) === item.ocbpMaterialName &&
-          getName(inv, ["iCode"]) === item.ocbpMaterialCode,
-      );
-      console.log("Inventories:", inventories);
-      console.log("Selected Inventory:", selectedInventory);
-      if (selectedInventory) {
-        setSelectedInventory(selectedInventory);
+    if (item.isId && inventories.length > 0 && (!item.ocbpMaterialName || !item.ocbpMaterialCode)) {
+      const inv = inventories.find((i) => i.isId === item.isId);
+      if (inv) {
+        setSummary((prev) => ({
+          ...prev,
+          ocbpItems: prev.ocbpItems.map((itm) =>
+            itm.ocbpId === item.ocbpId
+              ? { ...itm, ocbpMaterialName: inv.isName || "", ocbpMaterialCode: inv.iCode || "" }
+              : itm
+          ),
+        }));
       }
     }
   }, [
     inventories.length,
+    item.isId,
+    item.ocbpId,
     item.ocbpMaterialName,
     item.ocbpMaterialCode,
     inventories,
+    setSummary,
   ]);
 
   const handleUpdateRABItem = (newData) => {
@@ -371,55 +358,12 @@ const RABItem = ({
             </div>
             <div className="flex justify-between items-center">
               <span className="text-black text-sm">Nama Bahan</span>
-
-              <div className="relative w-48">
-                {!isFieldLocked ? (
-                  <>
-                    <SearchableDropdown
-                      data={inventories}
-                      labelKey="isName"
-                      value={selectedInventory ? selectedInventory.iId : ""}
-                      valueKey="iId"
-                      onSelect={(value) => {
-                        setSelectedInventory(value);
-
-                        if (value) {
-                          handleUpdateRABItem({
-                            ocbpMaterialName: value.isName || "",
-                            ocbpMaterialCode: value.iCode || "",
-                          });
-                        } else {
-                          handleUpdateRABItem({
-                            ocbpMaterialName: "",
-                            ocbpMaterialCode: "",
-                          });
-                        }
-                      }}
-                      onChange={(searchTerm) => {
-                        if (!searchTerm) {
-                          setSelectedInventory(null);
-
-                          handleUpdateRABItem({
-                            ocbpMaterialName: "",
-                            ocbpMaterialCode: "",
-                          });
-                        }
-                      }}
-                      placeholder={"Pilih Bahan"}
-                    />
-                    <ChevronDownIcon className="w-4 h-4 absolute right-2 top-2 text-gray-400 pointer-events-none" />
-                  </>
-                )
-                  : (
-                    <input
-                      type="text"
-                      value={item.ocbpMaterialName}
-                      readOnly
-                      className="w-48 px-2 py-1 border border-gray-300 rounded text-black bg-gray-50 text-sm"
-                      placeholder="Kode akan terisi otomatis"
-                    />
-                  )}
-              </div>
+              <input
+                type="text"
+                value={item.ocbpMaterialName || item.isName || ""}
+                readOnly
+                className="w-48 px-2 py-1 border border-gray-300 rounded text-black bg-gray-50 text-sm"
+              />
             </div>
             <div className="flex justify-between items-center">
               <span className="text-black text-sm">Kode Bahan</span>
