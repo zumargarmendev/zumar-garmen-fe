@@ -6,7 +6,7 @@ import {
   UserIcon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { getCatalogueCategories } from "../../../api/Catalogue/catalogueCategory";
@@ -25,6 +25,7 @@ import BackgroundImage from '../../../assets/background/bg-zumar.png';
 
 const AddOrder = () => {
   const navigate = useNavigate();
+  const sizeKeyRef = useRef(0);
 
   // States
   const [saving, setSaving] = useState(false);
@@ -51,6 +52,7 @@ const AddOrder = () => {
           {
             sId: 0,
             oisAmount: 0,
+            _key: ++sizeKeyRef.current,
           },
         ],
       },
@@ -374,6 +376,7 @@ const AddOrder = () => {
             {
               sId: "",
               oisAmount: "",
+              _key: ++sizeKeyRef.current,
             },
           ],
         },
@@ -399,6 +402,7 @@ const AddOrder = () => {
         {
           sId: "",
           oisAmount: "",
+          _key: ++sizeKeyRef.current,
         },
       ];
       newItems[itemIndex] = currentItem;
@@ -1006,7 +1010,7 @@ const AddOrder = () => {
                       <div className="space-y-3">
                         {item.oiSizes.map((size, sizeIndex) => (
                           <div
-                            key={sizeIndex}
+                            key={size._key}
                             className="flex items-center gap-3"
                           >
                             <div className="flex-1">
@@ -1015,13 +1019,26 @@ const AddOrder = () => {
                                 <span className="text-red-500 ml-1">*</span>
                               </label>
                               <SearchableDropdown
-                                options={sizes.map((product) => ({
-                                  id: product.sId,
-                                  name: product.sName,
-                                }))}
-                                data={sizes}
+                                options={sizes
+                                  .filter((s) => {
+                                    const usedSIds = item.oiSizes
+                                      .filter((_, i) => i !== sizeIndex)
+                                      .map((os) => os.sId);
+                                    return !usedSIds.includes(s.sId);
+                                  })
+                                  .map((product) => ({
+                                    id: product.sId,
+                                    name: product.sName,
+                                  }))}
+                                data={sizes.filter((s) => {
+                                  const usedSIds = item.oiSizes
+                                    .filter((_, i) => i !== sizeIndex)
+                                    .map((os) => os.sId);
+                                  return !usedSIds.includes(s.sId);
+                                })}
                                 labelKey="sName"
                                 valueKey="sId"
+                                value={size.sId}
                                 onSelect={(value) => {
                                   handleSizeChange(
                                     itemIndex,
