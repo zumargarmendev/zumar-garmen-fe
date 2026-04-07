@@ -1709,19 +1709,17 @@ const generateOperationalSection = (doc, chunk, startY) => {
   operationalServicesList.forEach(service => {
     const row = [service];
     let rowTotal = 0;
-    
+
     chunk.forEach(item => {
       const serviceColumns = item.operationalServices?.columns || [];
       const serviceValues = item.operationalServices?.values || [];
       const serviceIndex = serviceColumns.indexOf(service);
       const value = serviceIndex >= 0 ? (serviceValues[serviceIndex] || 0) : 0;
-      
-      // Jika tidak ada value
+
       row.push(value === 0 ? 'Rp 0' : formatCurrency(value));
-      rowTotal += value;
+      rowTotal += value * (item.quantity || 0);
     });
-    
-    // Total per row
+
     row.push(formatCurrency(rowTotal));
     operationalData.push(row);
   });
@@ -1782,19 +1780,17 @@ const generateUtilitiesSection = (doc, chunk, startY) => {
   utilitiesList.forEach(utility => {
     const row = [utility];
     let rowTotal = 0;
-    
+
     chunk.forEach(item => {
       const utilityColumns = item.utilities?.columns || [];
       const utilityValues = item.utilities?.values || [];
       const utilityIndex = utilityColumns.indexOf(utility);
       const value = utilityIndex >= 0 ? (utilityValues[utilityIndex] || 0) : 0;
-      
-      // Jika tidak ada value
+
       row.push(value === 0 ? 'Rp 0' : formatCurrency(value));
-      rowTotal += value;
+      rowTotal += value * (item.quantity || 0);
     });
-    
-    // Total per row
+
     row.push(formatCurrency(rowTotal));
     bekakasData.push(row);
   });

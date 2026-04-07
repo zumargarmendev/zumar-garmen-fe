@@ -202,6 +202,12 @@ function ActionDropdown({
     // "1-1-0-Y-N": ["view", "rab", "reject", "approve"],
     "1-1-0-Y-N": ["view", "rab", "generate", "reject", "approve", "skema"],
 
+    // RAB sudah diisi + skema sudah diset, belum approve
+    "1-1-0-Y-Y": ["view", "rab", "generate", "reject", "approve", "skema"],
+
+    // Edge case: RAB belum tapi DP sudah set (data inkonsisten)
+    "1-1-0-N-Y": ["view", "rab", "generate", "reject"],
+
     // Setelah di Approve (approval 2, payment belum ada tapi siap skema)
     "2-1-0-Y-N": ["view", "rab", "generate", "progress", "lockProgress", "reject", "skema"],
 
@@ -226,9 +232,13 @@ function ActionDropdown({
     // Setelah Settlement (approval 2, payment 3)
     "2-3-1-Y-Y": ["view", "rab", "generate", "progress", "unlockProgress"],
 
-    //
+    // Fallback approval 2: RAB belum diisi (data inkonsisten)
+    "2-1-0-N-N": ["view", "rab", "generate", "progress", "lockProgress", "reject"],
+    "2-1-1-N-N": ["view", "rab", "generate", "progress", "unlockProgress", "reject"],
+    "2-1-0-N-Y": ["view", "rab", "generate", "progress", "lockProgress", "reject"],
+    "2-1-1-N-Y": ["view", "rab", "generate", "progress", "unlockProgress", "reject"],
 
-    // Setelah di Approve (approval 2, payment belum ada tapi siap skema)
+    // Order Selesai (approval 3, payment belum ada tapi siap skema)
     "3-1-0-Y-N": ["view", "rab", "generate", "progress", "skema"],
 
     // Setelah di Approve (approval 2, payment belum ada tapi siap skema)
@@ -246,11 +256,17 @@ function ActionDropdown({
     // Setelah Down Payment (approval 2, payment 2)
     "3-2-1-Y-Y": ["view", "rab", "generate", "progress", "settlement"],
 
-    // Setelah Settlement (approval 2, payment 3)
+    // Setelah Settlement (approval 3, payment 3)
     "3-3-0-Y-Y": ["view", "rab", "generate", "progress"],
 
-    // Setelah Settlement (approval 2, payment 3)
+    // Setelah Settlement (approval 3, payment 3)
     "3-3-1-Y-Y": ["view", "rab", "generate", "progress"],
+
+    // Fallback approval 3: RAB belum diisi (data inkonsisten)
+    "3-1-0-N-N": ["view", "rab", "generate", "progress"],
+    "3-1-1-N-N": ["view", "rab", "generate", "progress"],
+    "3-1-0-N-Y": ["view", "rab", "generate", "progress"],
+    "3-1-1-N-Y": ["view", "rab", "generate", "progress"],
   };
 
   useEffect(() => {
