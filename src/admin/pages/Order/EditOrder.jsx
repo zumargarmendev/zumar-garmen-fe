@@ -52,10 +52,11 @@ const EditOrder = () => {
   const [orderData, setOrderData] = useState(null);
   const [orderItems, setOrderItems] = useState([]);
   const [orderProgressMain, setOrderProgressMain] = useState([]);
-  const [orderProgressDetails, setOrderProgressDetails] = useState({});
+  const [progressItemsByStage, setProgressItemsByStage] = useState({});
+  const [detailItemsByProgress, setDetailItemsByProgress] = useState({});
   const [users, setUsers] = useState([]);
   const [usersLoading, setUsersLoading] = useState(true);
-  const [expandedSections, setExpandedSections] = useState(new Set([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11])); // Default: hanya section pertama yang expanded
+  const [expandedSections, setExpandedSections] = useState(new Set([0]));
 
   // Sidebar states
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -99,6 +100,10 @@ const EditOrder = () => {
   ];
 
   const [uniqueUsers, setUniqueUsers] = useState([]);
+  const [visibleUsersCount, setVisibleUsersCount] = useState(5);
+  const [visibleProgressItemsCount, setVisibleProgressItemsCount] = useState({});
+  const [loadedStages, setLoadedStages] = useState(new Set());
+  const [loadingStages, setLoadingStages] = useState(new Set());
 
   // Helper function untuk extract data dari response API
   const extractDataFromResponse = useCallback((response) => {
@@ -175,61 +180,124 @@ const EditOrder = () => {
     }
   }, [oId, extractDataFromResponse]);
 
-  // Fetch progress details for each progress main
+  // Phase 1: Fetch progress items untuk semua stage (tanpa detail items)
   const fetchProgressDetails = useCallback(async (progressMainData) => {
-    if (!progressMainData || progressMainData.length === 0) return;
-
-    const progressDetails = {};
-    const userList = []; // simpan daftar user mentah
+    if (!progressMainData || progressMainData.length === 0) return [];
 
     try {
-      for (const progressMain of progressMainData) {
-        if (!progressMain.opmId) continue;
+      const progressMainResults = await Promise.all(
+        progressMainData
+          .filter(pm => pm.opmId)
+          .map(async (progressMain) => {
+            const progressResponse = await getOrderProgressByMain(progressMain.opmId);
+            const progressItems = extractDataFromResponse(progressResponse);
+            return { opmId: progressMain.opmId, progressItems: progressItems || [] };
+          })
+      );
 
-        const progressResponse = await getOrderProgressByMain(progressMain.opmId);
-        const progressItems = extractDataFromResponse(progressResponse);
-        progressDetails[progressMain.opmId] = progressItems || [];
+      const allProgressItems = progressMainResults.flatMap(r => r.progressItems);
+      const userList = allProgressItems
+        .filter(item => item.uId)
+        .map(item => ({ id: item.uId, name: item.uName }));
 
-        for (const progressItem of progressItems || []) {
-          if (!progressItem.opId) continue;
-
-          userList.push({
-            id: progressItem.uId,
-            name: progressItem.uName,
-          });
-
-          const detailResponse = await getOrderProgressDetailItems(progressItem.opId);
-          const detailItems = extractDataFromResponse(detailResponse);
-          progressDetails[progressItem.opId] = detailItems || [];
-        }
+      const progressDetails = {};
+      for (const { opmId, progressItems } of progressMainResults) {
+        progressDetails[opmId] = progressItems;
       }
 
-      // ✅ Set state hanya sekali
-      setOrderProgressDetails(progressDetails);
-      // setUniqueUsers([...userList]);
+      setProgressItemsByStage(progressDetails);
       setUniqueUsers((prev) => {
-        // Gabungkan data lama dan baru, lalu hapus duplikat berdasarkan `id`
         const merged = [...prev, ...userList];
-
-        // Hilangkan duplikat berdasarkan ID
-        const unique = merged.filter(
-          (user, index, self) =>
-            index === self.findIndex((u) => u.id === user.id)
+        return merged.filter(
+          (user, index, self) => index === self.findIndex((u) => u.id === user.id)
         );
-
-        return unique;
       });
 
-      // Users loaded successfully
-
+      return progressMainResults;
     } catch {
-      // Error handled: Error fetching progress details
+      return [];
+    }
+  }, [extractDataFromResponse]);
+
+  // Phase 2: Fetch detail items untuk satu stage (lazy, pakai progress items yang sudah ada)
+  const loadStageDetails = useCallback(async (opmId, progressItems) => {
+    if (!progressItems.length) {
+      setLoadedStages(prev => new Set([...prev, opmId]));
+      return;
+    }
+    setLoadingStages(prev => new Set([...prev, opmId]));
+    try {
+      const detailResults = await Promise.all(
+        progressItems.filter(item => item.opId).map(async (item) => {
+          const detailResponse = await getOrderProgressDetailItems(item.opId);
+          const detailItems = extractDataFromResponse(detailResponse);
+          return { opId: item.opId, detailItems: detailItems || [] };
+        })
+      );
+      setDetailItemsByProgress(prev => {
+        const newState = { ...prev };
+        for (const { opId, detailItems } of detailResults) {
+          newState[opId] = detailItems;
+        }
+        return newState;
+      });
+      setLoadedStages(prev => new Set([...prev, opmId]));
+    } catch {
+      // Error handled
+    } finally {
+      setLoadingStages(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(opmId);
+        return newSet;
+      });
+    }
+  }, [extractDataFromResponse]);
+
+  // Full refresh satu stage: fetch ulang progress items + detail items (untuk post-delete)
+  const fetchAndLoadStage = useCallback(async (opmId) => {
+    setLoadingStages(prev => new Set([...prev, opmId]));
+    try {
+      const progressResponse = await getOrderProgressByMain(opmId);
+      const progressItems = extractDataFromResponse(progressResponse);
+
+      const detailResults = await Promise.all(
+        progressItems.filter(item => item.opId).map(async (item) => {
+          const detailResponse = await getOrderProgressDetailItems(item.opId);
+          const detailItems = extractDataFromResponse(detailResponse);
+          return { opId: item.opId, detailItems: detailItems || [] };
+        })
+      );
+
+      setProgressItemsByStage(prev => ({ ...prev, [opmId]: progressItems }));
+      setDetailItemsByProgress(prev => {
+        const newState = { ...prev };
+        for (const { opId, detailItems } of detailResults) {
+          newState[opId] = detailItems;
+        }
+        return newState;
+      });
+
+      const userList = progressItems.filter(item => item.uId).map(item => ({ id: item.uId, name: item.uName }));
+      setUniqueUsers(prev => {
+        const merged = [...prev, ...userList];
+        return merged.filter((user, index, self) => index === self.findIndex(u => u.id === user.id));
+      });
+
+      setLoadedStages(prev => new Set([...prev, opmId]));
+    } catch {
+      // Error handled
+    } finally {
+      setLoadingStages(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(opmId);
+        return newSet;
+      });
     }
   }, [extractDataFromResponse]);
 
   // Debug effect untuk monitoring state
   useEffect(() => {
-  }, [orderData, orderItems, orderProgressMain, orderProgressDetails, selectedProgressMainId, selectedProgressId, uniqueUsers]);
+  }, [orderData, orderItems, orderProgressMain, progressItemsByStage, detailItemsByProgress, selectedProgressMainId, selectedProgressId, uniqueUsers]);
 
   // Main data fetching effect
   useEffect(() => {
@@ -240,28 +308,24 @@ const EditOrder = () => {
       try {
         // Loading order data
 
-        // Fetch all data in parallel where possible
-        const [orderData, itemsData] = await Promise.all([
+        // Fetch order data + progress main secara paralel
+        const [orderData, itemsData, progressMainData] = await Promise.all([
           fetchOrderDetail(),
-          fetchOrderItems()
+          fetchOrderItems(),
+          fetchProgressMain()
         ]);
 
-        // Order and items data loaded
-
-        // If order items not found from separate API, use items from order detail
         if (itemsData.length === 0 && orderData?.oItems) {
-          // Using items from order detail
           setOrderItems(orderData.oItems);
         }
 
-        // Fetch progress main data
-        const progressMainData = await fetchProgressMain();
-        // Progress main data loaded
-
-        // Fetch progress details if progress main exists
         if (progressMainData.length > 0) {
-          // Loading progress details
-          await fetchProgressDetails(progressMainData);
+          const progressMainResults = await fetchProgressDetails(progressMainData);
+          // Lazy: hanya load detail items untuk stage 0 (default expanded)
+          const firstStage = progressMainResults?.[0];
+          if (firstStage?.opmId) {
+            await loadStageDetails(firstStage.opmId, firstStage.progressItems);
+          }
         }
 
       } catch (err) {
@@ -273,7 +337,7 @@ const EditOrder = () => {
     };
 
     fetchAllData();
-  }, [fetchOrderDetail, fetchOrderItems, fetchProgressMain, fetchProgressDetails]);
+  }, [fetchOrderDetail, fetchOrderItems, fetchProgressMain, fetchProgressDetails, loadStageDetails]);
 
   // Fetch users
   useEffect(() => {
@@ -481,9 +545,6 @@ const EditOrder = () => {
           throw new Error(`Server error: ${response.data?.remark || 'Failed to create progress'}`);
         }
 
-        // Tunggu sebentar untuk memastikan data tersimpan di server
-        await new Promise(resolve => setTimeout(resolve, 500));
-
         // Refresh data secara berurutan
         const progressMainData = await fetchProgressMain();
         if (!progressMainData?.length) {
@@ -514,11 +575,7 @@ const EditOrder = () => {
           return unique;
         });
 
-        // Update state dengan data baru
-        setOrderProgressDetails(prev => ({
-          ...prev,
-          [selectedProgressMainId]: progressItems || []
-        }));
+        setProgressItemsByStage(prev => ({ ...prev, [selectedProgressMainId]: progressItems || [] }));
 
         // Reset form
         setNewProgress({
@@ -557,20 +614,23 @@ const EditOrder = () => {
 
   // Handle delete progress
   const handleDeleteProgress = async (progressId) => {
-    // Konfirmasi penghapusan
     if (!window.confirm('Apakah Anda yakin ingin menghapus progress ini?')) {
       return;
     }
+
+    // Cari opmId yang terdampak sebelum delete
+    const affectedOpmId = orderProgressMain.find(main =>
+      (progressItemsByStage[main.opmId] || []).some(item => item.opId === progressId)
+    )?.opmId;
 
     const toastId = toast.loading('Menghapus progress...');
     setSaving(true);
     try {
       await deleteOrderProgress(progressId);
 
-      // Refresh progress data
-      const progressMainData = await fetchProgressMain();
-      if (progressMainData.length > 0) {
-        await fetchProgressDetails(progressMainData);
+      await fetchProgressMain();
+      if (affectedOpmId) {
+        await fetchAndLoadStage(affectedOpmId);
       }
 
       toast.update(toastId, {
@@ -610,7 +670,7 @@ const EditOrder = () => {
       let activeProgressMainId = null;
 
       for (const main of orderProgressMain) {
-        const progressItems = orderProgressDetails[main.opmId] || [];
+        const progressItems = progressItemsByStage[main.opmId] || [];
         const foundProgress = progressItems.find(p => p.opId === parseInt(selectedProgressId));
         if (foundProgress) {
           activeProgress = foundProgress;
@@ -624,7 +684,7 @@ const EditOrder = () => {
       }
 
       // Validasi amount
-      const existingDetails = orderProgressDetails[selectedProgressId] || [];
+      const existingDetails = detailItemsByProgress[selectedProgressId] || [];
       const totalFinished = existingDetails.reduce((sum, d) => sum + (parseInt(d.opdAmount) || 0), 0);
       const remainingAmount = parseInt(activeProgress.opAmount) - totalFinished;
 
@@ -663,9 +723,6 @@ const EditOrder = () => {
         throw new Error(response?.data?.remark || 'Failed to create finished item');
       }
 
-      // Tunggu sebentar untuk memastikan data tersimpan di server
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
       // Refresh data
       const progressMainData = await fetchProgressMain();
       // Progress data refreshed
@@ -693,16 +750,8 @@ const EditOrder = () => {
       const detailItems = extractDataFromResponse(detailResponse);
       // Detail items updated
 
-      // Update state dengan data baru
-      setOrderProgressDetails(prev => {
-        const newState = { ...prev };
-        // Update progress items untuk progress main
-        newState[activeProgressMainId] = progressItems;
-        // Update detail items untuk progress
-        newState[selectedProgressId] = detailItems;
-        // State updated successfully
-        return newState;
-      });
+      setProgressItemsByStage(prev => ({ ...prev, [activeProgressMainId]: progressItems }));
+      setDetailItemsByProgress(prev => ({ ...prev, [selectedProgressId]: detailItems }));
 
       // Reset form
       setNewProgressDetail({
@@ -758,21 +807,13 @@ const EditOrder = () => {
         throw new Error(response?.data?.remark || 'Failed to update finished item');
       }
 
-      // Tunggu sebentar untuk memastikan data tersimpan di server
-      await new Promise(resolve => setTimeout(resolve, 1000));
 
       // Refresh data
       const detailResponse = await getOrderProgressDetailItems(selectedProgressId);
       const detailItems = extractDataFromResponse(detailResponse);
       // Detail items updated
 
-      // Update state
-      setOrderProgressDetails(prev => {
-        const newState = { ...prev };
-        newState[selectedProgressId] = detailItems;
-        // State updated after edit
-        return newState;
-      });
+      setDetailItemsByProgress(prev => ({ ...prev, [selectedProgressId]: detailItems }));
 
       // Reset form
       setEditProgressDetail({
@@ -808,10 +849,7 @@ const EditOrder = () => {
       const detailResponse = await getOrderProgressDetailItems(selectedProgressId);
       const detailItems = extractDataFromResponse(detailResponse);
 
-      setOrderProgressDetails(prev => ({
-        ...prev,
-        [selectedProgressId]: detailItems
-      }));
+      setDetailItemsByProgress(prev => ({ ...prev, [selectedProgressId]: detailItems }));
 
       toast.update(toastId, {
         render: 'Finished item berhasil dihapus',
@@ -837,7 +875,7 @@ const EditOrder = () => {
     if (!progressMain.opmAmountTotal || progressMain.opmAmountTotal === 0) return 0;
 
     const totalFinished = progressItems.reduce((total, item) => {
-      const details = orderProgressDetails[item.opId] || [];
+      const details = detailItemsByProgress[item.opId] || [];
       const itemFinished = details.reduce((sum, detail) => sum + (detail.opdAmount || 0), 0);
       return total + itemFinished;
     }, 0);
@@ -884,7 +922,7 @@ const EditOrder = () => {
       const progressLengkapData = {
         orderData,
         orderProgressMain,
-        orderProgressDetails, // This contains both progress items (by opmId) and finished items (by opId)
+        orderProgressDetails: { ...progressItemsByStage, ...detailItemsByProgress },
         users,
         progressMainNames
       };
@@ -1145,7 +1183,7 @@ const EditOrder = () => {
               </div>
             ) : (
               <div className="space-y-3">
-                {uniqueUsers.map((user) => (
+                {uniqueUsers.slice(0, visibleUsersCount).map((user) => (
                   <div
                     key={user.id}
                     onClick={() => handleUserRecap(user)}
@@ -1165,6 +1203,14 @@ const EditOrder = () => {
                     </span>
                   </div>
                 ))}
+                {uniqueUsers.length > visibleUsersCount && (
+                  <button
+                    onClick={() => setVisibleUsersCount(prev => prev + 5)}
+                    className="w-full py-2 text-sm text-primaryColor hover:underline"
+                  >
+                    Tampilkan lebih banyak ({uniqueUsers.length - visibleUsersCount} lainnya)
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -1216,7 +1262,7 @@ const EditOrder = () => {
                 </div>
               ) : (
                 orderProgressMain.map((progressMain, index) => {
-                  const progressItems = orderProgressDetails[progressMain.opmId] || [];
+                  const progressItems = progressItemsByStage[progressMain.opmId] || [];
                   const progressPercentage = calculateProgressPercentage(progressMain, progressItems);
 
                   return (
@@ -1225,6 +1271,10 @@ const EditOrder = () => {
                       <div
                         className="flex items-center justify-between mb-4 cursor-pointer"
                         onClick={() => {
+                          const opmId = progressMain.opmId;
+                          if (!expandedSections.has(index) && !loadedStages.has(opmId)) {
+                            loadStageDetails(opmId, progressItemsByStage[opmId] || []);
+                          }
                           setExpandedSections(prev => {
                             const newSet = new Set(prev);
                             if (newSet.has(index)) {
@@ -1254,7 +1304,7 @@ const EditOrder = () => {
                               <span>Progress: {progressPercentage}%</span>
                               <span>
                                 {progressItems.reduce((total, item) => {
-                                  const details = orderProgressDetails[item.opId] || [];
+                                  const details = detailItemsByProgress[item.opId] || [];
                                   return total + details.reduce((sum, detail) => sum + (detail.opdAmount || 0), 0);
                                 }, 0)} / {progressMain.opmAmountTotal || 0}
                               </span>
@@ -1648,7 +1698,7 @@ const EditOrder = () => {
                                     <p className="text-gray-500">Sudah Selesai</p>
                                     <p className="font-semibold text-green-600">
                                       {progressItems.reduce((total, item) => {
-                                        const details = orderProgressDetails[item.opId] || [];
+                                        const details = detailItemsByProgress[item.opId] || [];
                                         return total + details.reduce((sum, detail) => sum + (detail.opdAmount || 0), 0);
                                       }, 0)} pcs
                                     </p>
@@ -1663,7 +1713,12 @@ const EditOrder = () => {
                           )}
 
                           {/* Progress Items */}
-                          {progressItems.length === 0 ? (
+                          {loadingStages.has(progressMain.opmId) ? (
+                            <div className="flex items-center justify-center gap-3 py-8 text-white border-t border-gray-200">
+                              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                              <span className="text-sm">Memuat detail progress...</span>
+                            </div>
+                          ) : progressItems.length === 0 ? (
                             <div className="text-center py-6 text-white border-t border-gray-200">
                               <p className="mb-3">
                                 Belum ada progress items untuk {progressMain.opmName}
@@ -1672,8 +1727,8 @@ const EditOrder = () => {
                           ) : (
                             <div className="space-y-4 border-t border-gray-200 pt-4">
                               <h4 className="font-medium text-white">Progress Items ({progressItems.length})</h4>
-                              {progressItems.map((progress, pIndex) => {
-                                const progressDetails = orderProgressDetails[progress.opId] || [];
+                              {progressItems.slice(0, visibleProgressItemsCount[progressMain.opmId] ?? 5).map((progress, pIndex) => {
+                                const progressDetails = detailItemsByProgress[progress.opId] || [];
                                 const totalFinished = progressDetails.reduce((sum, detail) => sum + (detail.opdAmount || 0), 0);
                                 const itemProgress = progress.opAmount > 0 ? Math.round((totalFinished / progress.opAmount) * 100) : 0;
 
@@ -1951,6 +2006,17 @@ const EditOrder = () => {
                                   </div>
                                 );
                               })}
+                              {progressItems.length > (visibleProgressItemsCount[progressMain.opmId] ?? 5) && (
+                                <button
+                                  onClick={() => setVisibleProgressItemsCount(prev => ({
+                                    ...prev,
+                                    [progressMain.opmId]: (prev[progressMain.opmId] ?? 5) + 5
+                                  }))}
+                                  className="w-full py-2 text-sm text-white hover:underline"
+                                >
+                                  Tampilkan lebih banyak ({progressItems.length - (visibleProgressItemsCount[progressMain.opmId] ?? 5)} lainnya)
+                                </button>
+                              )}
                             </div>
                           )}
                         </div>
