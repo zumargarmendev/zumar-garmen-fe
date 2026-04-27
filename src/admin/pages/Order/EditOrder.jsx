@@ -38,7 +38,8 @@ import AdminSidebar from '../../components/AdminSidebar';
 import ImagePreview from "../../../components/image-preview";
 import { usePermissions } from '../../../utils/usePermission';
 import BackgroundImage from '../../../assets/background/bg-zumar.png';
-import SearchableDropdown from '../../../components/SearchableDropdown';
+import AddProgressForm from './AddProgressForm';
+import AddProgressDetailForm from './AddProgressDetailForm';
 
 const EditOrder = () => {
   const { can } = usePermissions();
@@ -56,7 +57,7 @@ const EditOrder = () => {
   const [detailItemsByProgress, setDetailItemsByProgress] = useState({});
   const [users, setUsers] = useState([]);
   const [usersLoading, setUsersLoading] = useState(true);
-  const [expandedSections, setExpandedSections] = useState(new Set([0]));
+  const [activeOpmId, setActiveOpmId] = useState(null);
 
   // Sidebar states
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -64,24 +65,12 @@ const EditOrder = () => {
 
   // Progress form state
   const [showAddProgress, setShowAddProgress] = useState(false);
-  const [selectedProgressMainId, setSelectedProgressMainId] = useState(null);
-  const [newProgress, setNewProgress] = useState({
-    oisId: '',
-    opAmount: '',
-    opFee: '',
-    opDeadlineAt: '',
-    uId: ''
-  });
 
   // Progress detail form state
   const [showAddProgressDetail, setShowAddProgressDetail] = useState(false);
   const [showEditProgressDetail, setShowEditProgressDetail] = useState(false);
   const [selectedProgressId, setSelectedProgressId] = useState(null);
   const [selectedProgressDetailId, setSelectedProgressDetailId] = useState(null);
-  const [newProgressDetail, setNewProgressDetail] = useState({
-    opdAmount: '',
-    opdFinishedAt: ''
-  });
   const [editProgressDetail, setEditProgressDetail] = useState({
     opdId: '',
     opdAmount: '',
@@ -297,7 +286,7 @@ const EditOrder = () => {
 
   // Debug effect untuk monitoring state
   useEffect(() => {
-  }, [orderData, orderItems, orderProgressMain, progressItemsByStage, detailItemsByProgress, selectedProgressMainId, selectedProgressId, uniqueUsers]);
+  }, [orderData, orderItems, orderProgressMain, progressItemsByStage, detailItemsByProgress, selectedProgressId, uniqueUsers]);
 
   // Main data fetching effect
   useEffect(() => {
@@ -325,6 +314,7 @@ const EditOrder = () => {
           const firstStage = progressMainResults?.[0];
           if (firstStage?.opmId) {
             await loadStageDetails(firstStage.opmId, firstStage.progressItems);
+            setActiveOpmId(firstStage.opmId);
           }
         }
 
@@ -441,28 +431,7 @@ const EditOrder = () => {
     }).format(amount);
   };
 
-  function groupByOisId(data) {
-    return Object.values(
-      data.reduce((acc, item) => {
-        const key = item.oisId;
-
-        if (!acc[key]) {
-          acc[key] = {
-            oisId: key,
-            opAmount: 0,
-            opAmountDone: 0
-          };
-        }
-
-        acc[key].opAmount += item.opAmount || 0;
-        acc[key].opAmountDone += item.opAmountDone || 0;
-
-        return acc;
-      }, {})
-    );
-  }
-
-  const handleUserRecap = (user) => {
+const handleUserRecap = (user) => {
     navigate(`/admin/order/recap/${oId}/${user.id}`, {
       state: {
         selectedUser: user,      // kirim data user ke halaman tujuan
@@ -472,33 +441,17 @@ const EditOrder = () => {
   };
 
   // Handle add progress
-  const handleAddProgress = async () => {
+  const handleAddProgress = async (formData) => {
     try {
-      // Starting add progress operation
-
-      // Validasi basic input
-      if (!selectedProgressMainId || !newProgress.oisId || !newProgress.opAmount || !newProgress.opFee || !newProgress.opDeadlineAt || !newProgress.uId) {
+      if (!activeOpmId || !formData.oisId || !formData.opAmount || !formData.opFee || !formData.opDeadlineAt || !formData.uId) {
         throw new Error('Mohon lengkapi semua field yang required');
       }
 
-      // Validasi status order
       if (orderData?.oApprovalStatus !== 2) {
         throw new Error('Order harus berstatus "Order Dibuat/Diproses" untuk menambah progress');
       }
 
-      // Validasi item
-      const selectedItem = orderItems.find(item => item.oisId === parseInt(newProgress.oisId));
-      if (!selectedItem) {
-        throw new Error('Item yang dipilih tidak valid');
-      }
-
-      // Validasi amount tidak melebihi jumlah item
-      if (parseInt(newProgress.opAmount) > selectedItem.oisAmount) {
-        throw new Error(`Jumlah tidak boleh melebihi jumlah item (${selectedItem.oisAmount} pcs)`);
-      }
-
-      // Validasi deadline
-      const deadlineDate = new Date(newProgress.opDeadlineAt);
+      const deadlineDate = new Date(formData.opDeadlineAt);
       const orderDeadline = new Date(orderData.oDeadlineAt);
       const now = new Date();
 
@@ -510,102 +463,38 @@ const EditOrder = () => {
         throw new Error('Deadline progress tidak boleh melewati deadline order');
       }
 
-      // Prepare data sesuai dengan API example
       const progressData = {
-        opmId: parseInt(selectedProgressMainId),
+        opmId: parseInt(activeOpmId),
         opItems: [{
-          oisId: parseInt(newProgress.oisId),
-          uId: newProgress.uId,
-          opAmount: parseInt(newProgress.opAmount),
-          opFee: parseInt(newProgress.opFee),
-          // Tambahkan 7 jam untuk mengkompensasi timezone
+          oisId: parseInt(formData.oisId),
+          uId: formData.uId,
+          opAmount: parseInt(formData.opAmount),
+          opFee: parseInt(formData.opFee),
           opDeadlineAt: (() => {
-            const date = new Date(newProgress.opDeadlineAt);
+            const date = new Date(formData.opDeadlineAt);
             date.setHours(date.getHours() + 7);
             return date.toISOString();
           })()
         }]
       };
 
-      // Sending progress data to API
       setSaving(true);
 
-      try {
-        // Creating progress with API
+      const response = await createOrderProgress(progressData);
 
-        // Create progress
-        const response = await createOrderProgress(progressData);
-
-        // Periksa response dengan lebih detail
-        if (!response?.data) {
-          throw new Error('No response data received');
-        }
-
-        if (response.data.status === 'error' || response.status === 500) {
-          throw new Error(`Server error: ${response.data?.remark || 'Failed to create progress'}`);
-        }
-
-        // Refresh data secara berurutan
-        const progressMainData = await fetchProgressMain();
-        if (!progressMainData?.length) {
-          throw new Error('No progress main data returned after create');
-        }
-
-        // Ambil progress items untuk progress main yang baru saja diupdate
-        const progressResponse = await getOrderProgressByMain(parseInt(selectedProgressMainId));
-        const progressItems = extractDataFromResponse(progressResponse);
-        const userList = [];
-        for (const progressItem of progressItems || []) {
-          if (!progressItem.opId) continue;
-          userList.push({
-            id: progressItem.uId,
-            name: progressItem.uName,
-          });
-        }
-        setUniqueUsers((prev) => {
-          // Gabungkan data lama dan baru, lalu hapus duplikat berdasarkan `id`
-          const merged = [...prev, ...userList];
-
-          // Hilangkan duplikat berdasarkan ID
-          const unique = merged.filter(
-            (user, index, self) =>
-              index === self.findIndex((u) => u.id === user.id)
-          );
-
-          return unique;
-        });
-
-        setProgressItemsByStage(prev => ({ ...prev, [selectedProgressMainId]: progressItems || [] }));
-
-        // Reset form
-        setNewProgress({
-          oisId: '',
-          opAmount: '',
-          opFee: '',
-          opDeadlineAt: '',
-          uId: ''
-        });
-        setShowAddProgress(false);
-        setSelectedProgressMainId(null);
-
-        // Reset form
-        setNewProgress({
-          oisId: '',
-          opAmount: '',
-          opFee: '',
-          opDeadlineAt: '',
-          uId: ''
-        });
-        setShowAddProgress(false);
-        setSelectedProgressMainId(null);
-
-        toast.success('Progress berhasil ditambahkan');
-      } catch (apiError) {
-        // Error handled:('API Error:', apiError);
-        throw new Error(apiError.response?.data?.message || 'Gagal menyimpan progress ke server');
+      if (!response?.data) {
+        throw new Error('No response data received');
       }
+
+      if (response.data.status === 'error' || response.data.status === 'failed' || (response.data.httpCode && response.data.httpCode >= 400)) {
+        throw new Error(response.data?.remark || 'Gagal menambahkan progress');
+      }
+
+      await fetchProgressMain();
+      await fetchAndLoadStage(parseInt(activeOpmId));
+      setShowAddProgress(false);
+      toast.success('Progress berhasil ditambahkan');
     } catch (err) {
-      // Error handled:('Error adding progress:', err);
       toast.error(err.message || 'Gagal menambahkan progress');
     } finally {
       setSaving(false);
@@ -653,117 +542,42 @@ const EditOrder = () => {
   };
 
   // Handle add progress detail (Finished Item)
-  const handleAddProgressDetail = async () => {
+  const handleAddProgressDetail = async (formData) => {
     try {
-      // Validasi basic input
-      if (!selectedProgressId || !newProgressDetail.opdAmount || !newProgressDetail.opdFinishedAt) {
+      if (!selectedProgressId || !formData.opdAmount || !formData.opdFinishedAt) {
         throw new Error('Mohon lengkapi semua field yang required');
       }
 
-      // Validasi status order
       if (orderData?.oApprovalStatus !== 2) {
         throw new Error('Order harus berstatus "Order Dibuat/Diproses" untuk menambah finished item');
       }
 
-      // Cari progress yang sedang aktif
-      let activeProgress = null;
-      let activeProgressMainId = null;
-
-      for (const main of orderProgressMain) {
-        const progressItems = progressItemsByStage[main.opmId] || [];
-        const foundProgress = progressItems.find(p => p.opId === parseInt(selectedProgressId));
-        if (foundProgress) {
-          activeProgress = foundProgress;
-          activeProgressMainId = main.opmId;
-          break;
-        }
-      }
-
-      if (!activeProgress) {
-        throw new Error('Progress tidak ditemukan');
-      }
-
-      // Validasi amount
-      const existingDetails = detailItemsByProgress[selectedProgressId] || [];
-      const totalFinished = existingDetails.reduce((sum, d) => sum + (parseInt(d.opdAmount) || 0), 0);
-      const remainingAmount = parseInt(activeProgress.opAmount) - totalFinished;
-
-      if (parseInt(newProgressDetail.opdAmount) > remainingAmount) {
-        throw new Error(`Jumlah melebihi sisa yang tersedia (${remainingAmount} pcs)`);
-      }
-
-      // Validasi tanggal removed - allowing flexible timing
-      // const finishDate = new Date(newProgressDetail.opdFinishedAt);
-      // const now = new Date();
-      // Removed deadline validation - allow finished time to exceed deadline
-
-      // Validation passed, creating finished item
-
       setSaving(true);
 
-      // Format data sesuai dengan API example
       const progressDetailData = {
         opId: parseInt(selectedProgressId),
         opdItems: [{
-          opdAmount: parseInt(newProgressDetail.opdAmount),
+          opdAmount: parseInt(formData.opdAmount),
           opdFinishedAt: (() => {
-            const date = new Date(newProgressDetail.opdFinishedAt);
-            date.setHours(date.getHours() + 7); // Tambah 7 jam untuk timezone
+            const date = new Date(formData.opdFinishedAt);
+            date.setHours(date.getHours() + 7);
             return date.toISOString();
           })()
         }]
       };
 
-      // Sending data to API
-
       const response = await createOrderProgressDetail(progressDetailData);
-      // API response received
 
-      if (response?.data?.status === 'error' || response?.status === 500) {
-        throw new Error(response?.data?.remark || 'Failed to create finished item');
+      if (response?.data?.status === 'error' || response?.data?.status === 'failed' || (response?.data?.httpCode && response?.data?.httpCode >= 400)) {
+        throw new Error(response?.data?.remark || 'Gagal menambahkan finished item');
       }
 
-      // Refresh data
-      const progressMainData = await fetchProgressMain();
-      // Progress data refreshed
-
-      if (!progressMainData?.length) {
-        throw new Error('No progress main data returned after create');
-      }
-
-      // Ambil progress items untuk progress main yang aktif
-      const progressResponse = await getOrderProgressByMain(activeProgressMainId);
-      const progressItems = extractDataFromResponse(progressResponse);
-      // Progress items updated
-      // const userList = [];
-      //   for (const progressItem of progressItems || []) {
-      //     if (!progressItem.opId) continue;
-      //     userList.push({
-      //           id: progressItem.uId,
-      //           name: progressItem.uName,
-      //         });
-      //   }
-      //   setUniqueUsers([...userList]);
-
-      // Ambil detail items untuk progress yang diupdate
-      const detailResponse = await getOrderProgressDetailItems(selectedProgressId);
-      const detailItems = extractDataFromResponse(detailResponse);
-      // Detail items updated
-
-      setProgressItemsByStage(prev => ({ ...prev, [activeProgressMainId]: progressItems }));
-      setDetailItemsByProgress(prev => ({ ...prev, [selectedProgressId]: detailItems }));
-
-      // Reset form
-      setNewProgressDetail({
-        opdAmount: '',
-        opdFinishedAt: ''
-      });
+      await fetchProgressMain();
+      await fetchAndLoadStage(parseInt(activeOpmId));
       setShowAddProgressDetail(false);
       setSelectedProgressId(null);
-
       toast.success('Finished item berhasil ditambahkan');
     } catch (err) {
-      // Error handled:('Error adding finished item:', err);
       toast.error(err.message || 'Gagal menambahkan finished item');
     } finally {
       setSaving(false);
@@ -803,8 +617,8 @@ const EditOrder = () => {
       const response = await updateOrderProgressDetail(updateData);
       // API response received
 
-      if (response?.data?.status === 'error' || response?.status === 500) {
-        throw new Error(response?.data?.remark || 'Failed to update finished item');
+      if (response?.data?.status === 'error' || response?.data?.status === 'failed' || (response?.data?.httpCode && response?.data?.httpCode >= 400)) {
+        throw new Error(response?.data?.remark || 'Gagal mengupdate finished item');
       }
 
 
@@ -1272,18 +1086,16 @@ const EditOrder = () => {
                         className="flex items-center justify-between mb-4 cursor-pointer"
                         onClick={() => {
                           const opmId = progressMain.opmId;
-                          if (!expandedSections.has(index) && !loadedStages.has(opmId)) {
-                            loadStageDetails(opmId, progressItemsByStage[opmId] || []);
-                          }
-                          setExpandedSections(prev => {
-                            const newSet = new Set(prev);
-                            if (newSet.has(index)) {
-                              newSet.delete(index);
-                            } else {
-                              newSet.add(index);
+                          if (activeOpmId === opmId) {
+                            setActiveOpmId(null);
+                            setShowAddProgress(false);
+                          } else {
+                            setActiveOpmId(opmId);
+                            setShowAddProgress(false);
+                            if (!loadedStages.has(opmId)) {
+                              loadStageDetails(opmId, progressItemsByStage[opmId] || []);
                             }
-                            return newSet;
-                          });
+                          }
                         }}
                       >
                         <div className="flex-1">
@@ -1291,7 +1103,7 @@ const EditOrder = () => {
                             <h3 className="font-semibold text-xl text-white">
                               {progressMain.opmName || progressMainNames[index] || `Progress Main #${index + 1}`}
                             </h3>
-                            {expandedSections.has(index) ? (
+                            {activeOpmId === progressMain.opmId ? (
                               <ChevronUpIcon className="w-5 h-5 text-white" />
                             ) : (
                               <ChevronDownIcon className="w-5 h-5 text-white" />
@@ -1363,9 +1175,13 @@ const EditOrder = () => {
                           {orderData?.oIsLockProgress === 0 && progressPercentage < 100 && can('progress.create') && (
                             <button
                               onClick={(e) => {
-                                e.stopPropagation(); // Prevent triggering expand/collapse
-                                setSelectedProgressMainId(progressMain.opmId);
+                                e.stopPropagation();
+                                const opmId = progressMain.opmId;
+                                setActiveOpmId(opmId);
                                 setShowAddProgress(true);
+                                if (!loadedStages.has(opmId)) {
+                                  loadStageDetails(opmId, progressItemsByStage[opmId] || []);
+                                }
                               }}
                               className="flex items-center gap-2 px-4 py-2 bg-white text-black rounded-lg hover:bg-white/90 disabled:opacity-50"
                               disabled={saving}
@@ -1378,338 +1194,21 @@ const EditOrder = () => {
                       </div>
 
                       {/* Content yang bisa di-collapse */}
-                      {expandedSections.has(index) && (
+                      {activeOpmId === progressMain.opmId && (
                         <div className="mt-4">
                           {/* Add Progress Form */}
-                          {showAddProgress && selectedProgressMainId === progressMain.opmId && (
-                            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-6 mb-6 shadow-sm">
-                              <div className="flex items-center gap-2 mb-4">
-                                <PlusIcon className="w-5 h-5 text-blue-600" />
-                                <h4 className="font-semibold text-lg text-blue-800">
-                                  Tambah Progress ke: {progressMain.opmName}
-                                </h4>
-                              </div>
-
-                              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                                {/* Left Column */}
-                                <div className="space-y-4">
-                                  <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                      Order Item Size <span className="text-red-500 ml-1">*</span>
-                                    </label>
-                                    {/* <select
-                                  value={newProgress.oisId}
-                                  onChange={(e) => setNewProgress({...newProgress, oisId: e.target.value})}
-                                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white shadow-sm"
-                                  required
-                                >
-                                  <option value="">-- Pilih Item yang akan dikerjakan --</option>
-                                  {orderItems.map((item, index) => (
-                                    <option key={item.oisId || index} value={item.oisId || index}>
-                                      📦 {item.cpName || `Item #${index + 1}`} | 📏 {item.sName || 'No Size'} | 🔢 {item.oisAmount || 0} pcs
-                                    </option>
-                                  ))}
-                                </select> */}
-
-                                    {/* <select
-                                  value={newProgress.oisId}
-                                  onChange={(e) =>
-                                    setNewProgress({ ...newProgress, oisId: e.target.value })
-                                  }
-                                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white shadow-sm"
-                                  required
-                                >
-                                  <option value="">-- Pilih Item yang akan dikerjakan --</option>
-
-                                  {orderItems
-                                    .filter((item) => {
-                                      const grouped = groupByOisId(progressItems).find(
-                                        (g) => g.oisId === item.oisId
-                                      );
-                                      if (!grouped) return true;
-                                      return item.oisAmount > grouped.opAmount;
-                                    })
-                                    .map((item, index) => {
-                                      const grouped = groupByOisId(progressItems).find(
-                                        (g) => g.oisId === item.oisId
-                                      );
-                                      const remaining = grouped
-                                        ? item.oisAmount - grouped.opAmount
-                                        : item.oisAmount;
-
-                                      return (
-                                        <option key={item.oisId || index} value={item.oisId || index}>
-                                          📦 {item.cpName || `Item #${index + 1}`} | 📏 {item.sName || "No Size"} | 🔢 {remaining} pcs
-                                        </option>
-                                      );
-                                    })}
-                                </select> */}
-
-                                    <SearchableDropdown
-                                      data={orderItems
-                                        .filter((item) => {
-                                          const grouped = groupByOisId(progressItems).find(
-                                            (g) => g.oisId === item.oisId
-                                          );
-                                          if (!grouped) return true;
-                                          return item.oisAmount > grouped.opAmount;
-                                        })
-                                        .map((item, index) => {
-                                          const grouped = groupByOisId(progressItems).find(
-                                            (g) => g.oisId === item.oisId
-                                          );
-                                          const remaining = grouped
-                                            ? item.oisAmount - grouped.opAmount
-                                            : item.oisAmount;
-
-                                          return {
-                                            oisId: item.oisId || index,
-                                            cpName: item.cpName || `Item #${index + 1}`,
-                                            sName: item.sName || "No Size",
-                                            remaining,
-                                            displayText: `📦 ${item.cpName || `Item #${index + 1}`} | 📏 ${item.sName || "No Size"
-                                              } | 🔢 ${remaining} pcs`,
-                                          };
-                                        })}
-                                      labelKey="displayText"
-                                      valueKey="oisId"
-                                      value={newProgress.oisId}
-                                      placeholder="Pilih Item yang akan dikerjakan"
-                                      required
-                                      onChange={(selectedOisId) =>
-                                        setNewProgress({ ...newProgress, oisId: selectedOisId })
-                                      }
-                                      renderItem={(item) => (
-                                        <div className="flex flex-col text-sm">
-                                          <span>
-                                            📦 {item.cpName || "Item"} | 📏 {item.sName || "No Size"} | 🔢{" "}
-                                            {item.remaining} pcs
-                                          </span>
-                                        </div>
-                                      )}
-                                    />
-                                    <p className="text-xs text-gray-500 mt-1">Pilih item pesanan yang akan dikerjakan pada tahap {progressMain.opmName}</p>
-                                  </div>
-
-                                  <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                      Progress Amount <span className="text-red-500 ml-1">*</span>
-                                    </label>
-                                    {/* <input
-                                  type="number"
-                                  value={newProgress.opAmount}
-                                  onChange={(e) => setNewProgress({...newProgress, opAmount: e.target.value})}
-                                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm"
-                                  placeholder="Masukkan jumlah yang akan dikerjakan"
-                                  min="1"
-                                  onWheel={(e) => e.currentTarget.blur()}
-                                  required
-                                /> */}
-                                    <input
-                                      type="number"
-                                      value={newProgress.opAmount}
-                                      onChange={(e) => {
-                                        const value = Number(e.target.value);
-
-                                        // cari item sesuai dropdown terpilih
-                                        const orderItem = orderItems.find(i => i.oisId === Number(newProgress.oisId));
-                                        const grouped = groupByOisId(progressItems).find(g => g.oisId === Number(newProgress.oisId));
-
-                                        const oisAmount = orderItem?.oisAmount || 0;
-                                        const alreadyProgressed = grouped?.opAmount || 0;
-
-                                        // max yang diizinkan
-                                        const max = oisAmount - alreadyProgressed;
-
-                                        if (value <= max) {
-                                          setNewProgress({ ...newProgress, opAmount: value });
-                                        } else {
-                                          setNewProgress({ ...newProgress, opAmount: max }); // auto clamp ke max
-                                        }
-                                      }}
-                                      className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm"
-                                      placeholder="Masukkan jumlah yang akan dikerjakan"
-                                      min="1"
-                                      max={
-                                        (orderItems.find(i => i.oisId === Number(newProgress.oisId))?.oisAmount || 0) -
-                                        (groupByOisId(progressItems).find(g => g.oisId === Number(newProgress.oisId))?.opAmount || 0)
-                                      }
-                                      onWheel={(e) => e.currentTarget.blur()}
-                                      required
-                                    />
-                                    <p className="text-xs text-gray-500 mt-1">Jumlah unit yang akan dikerjakan oleh pekerja ini</p>
-                                  </div>
-
-                                  <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                      Nilai Gaji <span className="text-red-500 ml-1">*</span>
-                                    </label>
-                                    {/* <input
-                                  type="number"
-                                  value={newProgress.opAmount}
-                                  onChange={(e) => setNewProgress({...newProgress, opAmount: e.target.value})}
-                                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm"
-                                  placeholder="Masukkan jumlah yang akan dikerjakan"
-                                  min="1"
-                                  onWheel={(e) => e.currentTarget.blur()}
-                                  required
-                                /> */}
-                                    <input
-                                      type="number"
-                                      value={newProgress.opFee}
-                                      onChange={(e) => {
-                                        const value = Number(e.target.value);
-                                        setNewProgress({ ...newProgress, opFee: value });
-                                      }}
-                                      className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm"
-                                      placeholder="Masukkan nilai gaji"
-                                      min="1"
-                                      onWheel={(e) => e.currentTarget.blur()}
-                                      required
-                                    />
-                                    <p className="text-xs text-gray-500 mt-1">Nilai gaji yang akan diberikan kepada pekerja ini untuk tiap item</p>
-                                  </div>
-                                </div>
-
-                                {/* Right Column */}
-                                <div className="space-y-4">
-                                  <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                      Deadline Pengerjaan <span className="text-red-500 ml-1">*</span>
-                                    </label>
-                                    <input
-                                      type="date"
-                                      value={newProgress.opDeadlineAt}
-                                      onChange={(e) => setNewProgress({ ...newProgress, opDeadlineAt: e.target.value })}
-                                      min={new Date().toISOString().slice(0, 16)}
-                                      max={new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16)}
-                                      onKeyDown={(e) => e.preventDefault()}
-                                      className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm"
-                                      required
-                                    />
-                                    <p className="text-xs text-gray-500 mt-1">Target waktu penyelesaian pekerjaan</p>
-                                  </div>
-
-                                  <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                      Assigned User <span className="text-red-500 ml-1">*</span>
-                                    </label>
-                                    {usersLoading ? (
-                                      <div className="w-full p-3 border border-gray-300 rounded-lg bg-gray-100 flex items-center gap-2">
-                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                                        <span className="text-gray-600">Loading users...</span>
-                                      </div>
-                                    ) : users.length > 0 ? (
-                                      <SearchableDropdown
-                                        data={users}
-                                        labelKey="uName"
-                                        valueKey="uId"
-                                        value={newProgress.uId}
-                                        placeholder="Pilih Pekerja"
-                                        onChange={(selectedId) => setNewProgress({ ...newProgress, uId: selectedId })}
-                                        renderItem={(user) => (
-                                          <>
-                                            👤 {user.uName} ({user.uEmail || user.uId})
-                                          </>
-                                        )}
-                                      />
-                                      // <select
-                                      //   value={newProgress.uId}
-                                      //   onChange={(e) => setNewProgress({...newProgress, uId: e.target.value})}
-                                      //   className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white shadow-sm"
-                                      //   required
-                                      // >
-                                      //   <option value="">-- Pilih Pekerja --</option>
-                                      //   {users.map((user) => (
-                                      // <option key={user.uId} value={user.uId}>
-                                      //   👤 {user.uName} ({user.uEmail || user.uId})
-                                      // </option>
-                                      //   ))}
-                                      // </select>
-                                    ) : (
-                                      <div className="space-y-2">
-                                        <input
-                                          type="text"
-                                          value={newProgress.uId}
-                                          onChange={(e) => setNewProgress({ ...newProgress, uId: e.target.value })}
-                                          className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm"
-                                          placeholder="Masukkan User ID"
-                                          required
-                                        />
-                                        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
-                                          <p className="text-xs text-amber-700 flex items-center gap-2">
-                                            <ExclamationTriangleIcon className="w-4 h-4" />
-                                            Users API tidak tersedia. Silakan masukkan User ID secara manual.
-                                          </p>
-                                        </div>
-                                      </div>
-                                    )}
-                                    <p className="text-xs text-gray-500 mt-1">Pekerja yang akan bertanggung jawab mengerjakan progress ini</p>
-                                  </div>
-                                </div>
-                              </div>
-
-                              {/* Action Buttons */}
-                              <div className="flex flex-col sm:flex-row gap-3 mt-6 pt-4 border-t border-blue-200">
-                                <button
-                                  onClick={handleAddProgress}
-                                  className="flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white font-medium rounded-lg hover:from-green-600 hover:to-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm"
-                                  disabled={saving || !newProgress.oisId || !newProgress.opAmount || !newProgress.opFee || !newProgress.opDeadlineAt || !newProgress.uId}
-                                >
-                                  {saving ? (
-                                    <>
-                                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                                      Menyimpan Progress...
-                                    </>
-                                  ) : (
-                                    <>
-                                      <CheckCircleIcon className="w-4 h-4" />
-                                      Simpan Progress
-                                    </>
-                                  )}
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    setShowAddProgress(false);
-                                    setSelectedProgressMainId(null);
-                                    setNewProgress({ oisId: '', opAmount: '', opFee: '', opDeadlineAt: '', uId: '' });
-                                  }}
-                                  className="flex items-center justify-center gap-2 px-6 py-3 bg-gray-500 text-white font-medium rounded-lg hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-all duration-200 shadow-sm"
-                                  disabled={saving}
-                                >
-                                  <XCircleIcon className="w-4 h-4" />
-                                  Batal
-                                </button>
-                              </div>
-
-                              {/* Progress Summary */}
-                              <div className="mt-4 bg-white border border-blue-100 rounded-lg p-4">
-                                <h5 className="text-sm font-semibold text-gray-700 mb-2">📊 Ringkasan Progress Main</h5>
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                                  <div className="text-center">
-                                    <p className="text-gray-500">Target Total</p>
-                                    <p className="font-semibold text-blue-600">{progressMain.opmAmountTotal || 0} pcs</p>
-                                  </div>
-                                  <div className="text-center">
-                                    <p className="text-gray-500">Progress Items</p>
-                                    <p className="font-semibold text-blue-600">{progressItems.length}</p>
-                                  </div>
-                                  <div className="text-center">
-                                    <p className="text-gray-500">Sudah Selesai</p>
-                                    <p className="font-semibold text-green-600">
-                                      {progressItems.reduce((total, item) => {
-                                        const details = detailItemsByProgress[item.opId] || [];
-                                        return total + details.reduce((sum, detail) => sum + (detail.opdAmount || 0), 0);
-                                      }, 0)} pcs
-                                    </p>
-                                  </div>
-                                  <div className="text-center">
-                                    <p className="text-gray-500">Progress</p>
-                                    <p className="font-semibold text-purple-600">{progressPercentage}%</p>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
+                          {showAddProgress && activeOpmId === progressMain.opmId && (
+                            <AddProgressForm
+                              progressMain={progressMain}
+                              progressItems={progressItems}
+                              orderItems={orderItems}
+                              users={users}
+                              usersLoading={usersLoading}
+                              saving={saving}
+                              orderData={orderData}
+                              onSubmit={handleAddProgress}
+                              onCancel={() => setShowAddProgress(false)}
+                            />
                           )}
 
                           {/* Progress Items */}
@@ -1805,73 +1304,15 @@ const EditOrder = () => {
 
                                     {/* Add Progress Detail Form */}
                                     {showAddProgressDetail && selectedProgressId === progress.opId && (
-                                      <div className="border border-green-200 rounded-lg p-4 mb-4 bg-green-50">
-                                        <h6 className="font-medium text-green-800 mb-3">Tambah Finished Item</h6>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                          <div>
-                                            <label className="block text-sm font-medium mb-1">Jumlah Selesai <span className="text-red-500 ml-1">*</span></label>
-                                            <input
-                                              type="number"
-                                              value={newProgressDetail.opdAmount}
-                                              onChange={(e) => {
-                                                let value = Number(e.target.value);
-
-                                                // hitung sisa maksimal yang boleh diinput
-                                                const maxValue = progress.opAmount - progress.opAmountDone;
-
-                                                // Batasi agar tidak lebih dari sisa maksimal
-                                                if (value > maxValue) {
-                                                  value = maxValue;
-                                                }
-                                                if (value < 0) {
-                                                  value = 0; // batasi minimum 0
-                                                }
-
-                                                setNewProgressDetail({
-                                                  ...newProgressDetail,
-                                                  opdAmount: value,
-                                                });
-                                              }}
-                                              className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                                              placeholder="Jumlah yang sudah selesai"
-                                              max={progress.opAmount - progress.opAmountDone} // supaya validasi HTML juga ikut
-                                              onWheel={(e) => e.currentTarget.blur()}
-                                              required
-                                            />
-                                          </div>
-                                          <div>
-                                            <label className="block text-sm font-medium mb-1">Waktu Selesai <span className="text-red-500 ml-1">*</span></label>
-                                            <input
-                                              type="date"
-                                              value={newProgressDetail.opdFinishedAt}
-                                              onChange={(e) => setNewProgressDetail({ ...newProgressDetail, opdFinishedAt: e.target.value })}
-                                              onKeyDown={(e) => e.preventDefault()}
-                                              className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                                              required
-                                            />
-                                          </div>
-                                        </div>
-                                        <div className="flex gap-2 mt-3">
-                                          <button
-                                            onClick={handleAddProgressDetail}
-                                            className="px-3 py-1 bg-green-500 text-white text-sm rounded hover:bg-green-600 disabled:opacity-50"
-                                            disabled={saving}
-                                          >
-                                            {saving ? 'Menyimpan...' : 'Simpan'}
-                                          </button>
-                                          <button
-                                            onClick={() => {
-                                              setShowAddProgressDetail(false);
-                                              setSelectedProgressId(null);
-                                              setNewProgressDetail({ opdAmount: '', opdFinishedAt: '' });
-                                            }}
-                                            className="px-3 py-1 bg-gray-500 text-white text-sm rounded hover:bg-gray-600"
-                                            disabled={saving}
-                                          >
-                                            Batal
-                                          </button>
-                                        </div>
-                                      </div>
+                                      <AddProgressDetailForm
+                                        progress={progress}
+                                        saving={saving}
+                                        onSubmit={handleAddProgressDetail}
+                                        onCancel={() => {
+                                          setShowAddProgressDetail(false);
+                                          setSelectedProgressId(null);
+                                        }}
+                                      />
                                     )}
 
                                     {/* Progress Details (Finished Items) */}
