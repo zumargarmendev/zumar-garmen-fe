@@ -41,6 +41,22 @@ import BackgroundImage from '../../../assets/background/bg-zumar.png';
 import AddProgressForm from './AddProgressForm';
 import AddProgressDetailForm from './AddProgressDetailForm';
 
+const isDateOverdue = (dateString) => {
+  if (!dateString) return false;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const date = new Date(dateString);
+  date.setHours(0, 0, 0, 0);
+  return today > date;
+};
+
+const isDateAfter = (a, b) => {
+  if (!a || !b) return false;
+  const da = new Date(a); da.setHours(0, 0, 0, 0);
+  const db = new Date(b); db.setHours(0, 0, 0, 0);
+  return da > db;
+};
+
 const EditOrder = () => {
   const { can } = usePermissions();
   const { oId } = useParams();
@@ -455,7 +471,7 @@ const handleUserRecap = (user) => {
       const orderDeadline = new Date(orderData.oDeadlineAt);
       const now = new Date();
 
-      if (deadlineDate < now) {
+      if (orderDeadline >= now && deadlineDate < now) {
         throw new Error('Deadline tidak boleh di masa lalu');
       }
 
@@ -751,6 +767,11 @@ const handleUserRecap = (user) => {
     }
   };
 
+  const isOrderOverdue = !!(orderData &&
+    isDateOverdue(orderData.oDeadlineAt) &&
+    orderData.oApprovalStatus !== 3 &&
+    orderData.oApprovalStatus !== 4);
+
   if (loading) {
     return (
       <div className="flex min-h-screen overflow-x-hidden">
@@ -897,7 +918,14 @@ const handleUserRecap = (user) => {
                   <CalendarDaysIcon className="w-5 h-5 text-gray-400" />
                   <div>
                     <p className="text-sm text-gray-500">Deadline</p>
-                    <p className="font-semibold">{formatDate(orderData?.oDeadlineAt)}</p>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="font-semibold">{formatDate(orderData?.oDeadlineAt)}</p>
+                      {isOrderOverdue && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700 border border-red-200">
+                          Overdue
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
                 {orderData?.oNotes && (
@@ -1099,10 +1127,15 @@ const handleUserRecap = (user) => {
                         }}
                       >
                         <div className="flex-1">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <h3 className="font-semibold text-xl text-white">
                               {progressMain.opmName || progressMainNames[index] || `Progress Main #${index + 1}`}
                             </h3>
+                            {isOrderOverdue && progressPercentage < 100 && (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-white text-red-600 border border-red-300">
+                                Overdue
+                              </span>
+                            )}
                             {activeOpmId === progressMain.opmId ? (
                               <ChevronUpIcon className="w-5 h-5 text-white" />
                             ) : (
@@ -1230,13 +1263,29 @@ const handleUserRecap = (user) => {
                                 const progressDetails = detailItemsByProgress[progress.opId] || [];
                                 const totalFinished = progressDetails.reduce((sum, detail) => sum + (detail.opdAmount || 0), 0);
                                 const itemProgress = progress.opAmount > 0 ? Math.round((totalFinished / progress.opAmount) * 100) : 0;
+                                const validFinishTimes = progressDetails.filter(d => d.opdFinishedAt).map(d => new Date(d.opdFinishedAt).getTime());
+                                const latestFinish = validFinishTimes.length > 0 ? Math.max(...validFinishTimes) : null;
+                                const isProgressItemLate = itemProgress === 100 && latestFinish !== null && isDateAfter(new Date(latestFinish), progress.opDeadlineAt);
+                                const isProgressItemCurrentlyOverdue = itemProgress < 100 && isDateOverdue(progress.opDeadlineAt);
 
                                 return (
                                   <div key={progress.opId || pIndex} className="bg-white border border-gray-200 rounded-lg p-4">
                                     <div className="flex items-center justify-between mb-3">
                                       <div className="flex-1">
                                         {/* <h5 className="font-medium text-lg">Progress Item #{pIndex + 1}</h5> */}
-                                        <h5 className="font-medium text-lg">{progress.cpName} - {progress.sName}</h5>
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                          <h5 className="font-medium text-lg">{progress.cpName} - {progress.sName}</h5>
+                                          {isProgressItemCurrentlyOverdue && (
+                                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700 border border-red-200">
+                                              Overdue
+                                            </span>
+                                          )}
+                                          {isProgressItemLate && (
+                                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-700 border border-amber-200">
+                                              Terlambat
+                                            </span>
+                                          )}
+                                        </div>
                                         <div className="text-sm text-gray-600 mt-1">
                                           <span className="inline-flex items-center gap-4">
                                             <span>Target: {progress.opAmount}</span>

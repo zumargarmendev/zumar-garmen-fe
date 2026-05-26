@@ -28,12 +28,14 @@ import Fullscreen from "yet-another-react-lightbox/plugins/fullscreen";
 import Zoom from "yet-another-react-lightbox/plugins/zoom";
 import "yet-another-react-lightbox/styles.css";
 
-const ProgressBarStatus = ({ percent }) => {
+const ProgressBarStatus = ({ percent, isOverdue }) => {
+  const labelBg = percent === 100 ? "bg-green-600" : isOverdue ? "bg-red-600" : "bg-orange-600";
+  const label = percent === 100 ? "Done" : isOverdue ? "Overdue" : "On Progress";
+
   return (
     <div className="flex items-center gap-2 w-full my-6">
       {/* Progress Bar */}
       <div className="flex items-center w-full bg-gray-100 rounded-full overflow-hidden h-8">
-        {/* Percent Bubble */}
         {percent === 0 && (
           <div className="text-primaryColor w-full text-center font-bold text-sm">
             0%
@@ -50,21 +52,26 @@ const ProgressBarStatus = ({ percent }) => {
       </div>
 
       {/* Status Label */}
-      <span
-        className={`${percent < 100 ? "bg-orange-600" : "bg-green-600"} text-white font-semibold text-sm px-6 py-2 rounded-full whitespace-nowrap`}
-      >
-        {percent < 100 ? "On Progress" : "Done"}
+      <span className={`${labelBg} text-white font-semibold text-sm px-6 py-2 rounded-full whitespace-nowrap`}>
+        {label}
       </span>
     </div>
   );
 };
 
-const ProgressCard = ({ title, percent }) => {
+const ProgressCard = ({ title, percent, isOverdue }) => {
   return (
     <div className="bg-white rounded-2xl shadow p-4 flex flex-col gap-2">
       {/* Header */}
       <div className="flex justify-between items-center border-b border-green-400 pb-2">
-        <h2 className="font-bold text-primaryColor">{title}</h2>
+        <div className="flex items-center gap-2 flex-wrap">
+          <h2 className="font-bold text-primaryColor">{title}</h2>
+          {isOverdue && percent < 100 && (
+            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700 border border-red-200">
+              Overdue
+            </span>
+          )}
+        </div>
         <span className="text-[#4AD991] font-semibold">{percent}%</span>
       </div>
 
@@ -74,6 +81,15 @@ const ProgressCard = ({ title, percent }) => {
       </div>
     </div>
   );
+};
+
+const isDateOverdue = (dateString) => {
+  if (!dateString) return false;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const date = new Date(dateString);
+  date.setHours(0, 0, 0, 0);
+  return today > date;
 };
 
 const OrderDetail = () => {
@@ -109,15 +125,10 @@ const OrderDetail = () => {
         const [detailRes, itemsRes, progressRes] = await Promise.all([
           getOrderDetail(oId),
           getOrderItemSizes(oId),
-          getOrderProgressMain(oId).catch((err) => {
-            console.log("Order Progress API Error:", err);
+          getOrderProgressMain(oId).catch(() => {
             return { data: { data: [] } };
           }), // Optional API
         ]);
-
-        console.log("Order Detail Response:", detailRes);
-        console.log("Order Items Response:", itemsRes);
-        console.log("Order Progress Main Response:", progressRes);
 
         // Set order basic data
         if (detailRes.data && detailRes.data.data) {
@@ -139,8 +150,7 @@ const OrderDetail = () => {
             : progressRes.data.data;
           setOrderProgress(Array.isArray(progressData) ? progressData : []);
         }
-      } catch (err) {
-        console.error("Error fetching order data:", err);
+      } catch {
         setError("Gagal memuat data detail pesanan");
       } finally {
         setLoading(false);
@@ -254,6 +264,11 @@ const OrderDetail = () => {
         return "text-gray-600 bg-gray-100";
     }
   };
+
+  const isOrderOverdue = !!(orderData &&
+    isDateOverdue(orderData.oDeadlineAt) &&
+    orderData.oApprovalStatus !== 3 &&
+    orderData.oApprovalStatus !== 4);
 
   if (loading) {
     return (
@@ -403,9 +418,16 @@ const OrderDetail = () => {
                   <CalendarDaysIcon className="w-5 h-5 text-gray-400" />
                   <div>
                     <p className="text-sm text-gray-500">Deadline</p>
-                    <p className="font-semibold">
-                      {formatDate(orderData?.oDeadlineAt)}
-                    </p>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="font-semibold">
+                        {formatDate(orderData?.oDeadlineAt)}
+                      </p>
+                      {isOrderOverdue && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700 border border-red-200">
+                          Overdue
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -566,7 +588,7 @@ const OrderDetail = () => {
             <h2 className="text-xl font-bold text-primaryColor mb-4">
               Progress Pesanan
             </h2>
-            <ProgressBarStatus percent={orderData.oProgress} />
+            <ProgressBarStatus percent={orderData.oProgress} isOverdue={isOrderOverdue} />
             {orderProgress.length === 0 ? (
               <div className="text-center py-8 text-gray-400">
                 <ClockIcon className="w-12 h-12 mx-auto mb-2 opacity-50" />
@@ -582,6 +604,7 @@ const OrderDetail = () => {
                     key={index}
                     title={item.opmName}
                     percent={item.opmProgress}
+                    isOverdue={isOrderOverdue}
                   />
                 ))}
               </div>

@@ -76,6 +76,14 @@ const AddProgressForm = memo(({
   const selectedGrouped = grouped.find(g => g.oisId === selectedOisId);
   const oisRemaining = selectedOrderItem ? selectedOrderItem.oisAmount - (selectedGrouped?.opAmount || 0) : 0;
 
+  const toLocalDateStr = (d) => {
+    const date = d instanceof Date ? d : new Date(d);
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  };
+  const todayStr = toLocalDateStr(new Date());
+  const maxDateStr = orderData?.oDeadlineAt ? toLocalDateStr(new Date(orderData.oDeadlineAt)) : undefined;
+  const minDateStr = maxDateStr && todayStr > maxDateStr ? undefined : todayStr;
+
   return (
     <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-6 mb-6 shadow-sm">
       <div className="flex items-center gap-2 mb-4">
@@ -186,8 +194,8 @@ const AddProgressForm = memo(({
               type="date"
               value={form.opDeadlineAt}
               onChange={(e) => setForm(prev => ({ ...prev, opDeadlineAt: e.target.value }))}
-              min={new Date().toISOString().slice(0, 10)}
-              max={orderData?.oDeadlineAt ? new Date(orderData.oDeadlineAt).toISOString().slice(0, 10) : undefined}
+              min={minDateStr}
+              max={maxDateStr}
               onKeyDown={(e) => e.preventDefault()}
               className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm"
               required
