@@ -177,8 +177,11 @@ const RABItemsSection = ({
                 onClick={() => handleTabChange(item)}
               >
                 <span className="block">{`${item.cpName} - Size ${item.sGroup} (${item.ocbpAmount})`}</span>
-                {item.isName && (
-                  <span className="block text-xs opacity-80 font-normal">{item.isName}</span>
+                {(item.ocbpMaterialName || item.isName) && (
+                  <span className="block text-xs opacity-80 font-normal">
+                    {item.ocbpMaterialName || item.isName}
+                    {item.ocbpMaterialCode ? ` - ${item.ocbpMaterialCode}` : ""}
+                  </span>
                 )}
               </button>
               // <button
@@ -241,22 +244,46 @@ const RABItem = ({
   };
 
   useEffect(() => {
-    if (item.isId && inventories.length > 0 && (!item.ocbpMaterialName || !item.ocbpMaterialCode)) {
-      const inv = inventories.find((i) => i.isId === item.isId);
-      if (inv) {
-        setSummary((prev) => ({
-          ...prev,
-          ocbpItems: prev.ocbpItems.map((itm) =>
-            itm.ocbpId === item.ocbpId
-              ? { ...itm, ocbpMaterialName: inv.isName || "", ocbpMaterialCode: inv.iCode || "" }
-              : itm
-          ),
-        }));
+    if (inventories.length === 0) return;
+    if (item.ocbpMaterialName && item.ocbpMaterialCode) return;
+
+    let inv = item.isId
+      ? inventories.find((i) => i.isId === item.isId) || null
+      : null;
+
+    if (!inv) {
+      const fallbackName = (item.ocbpMaterialName || item.isName || "")
+        .trim()
+        .toLowerCase();
+      if (fallbackName) {
+        const matches = inventories.filter(
+          (i) => (i.isName || "").trim().toLowerCase() === fallbackName
+        );
+        const distinctCodes = [...new Set(matches.map((i) => i.iCode).filter(Boolean))];
+        if (matches.length > 0 && distinctCodes.length === 1) {
+          inv = matches[0];
+        }
       }
+    }
+
+    if (inv) {
+      setSummary((prev) => ({
+        ...prev,
+        ocbpItems: prev.ocbpItems.map((itm) =>
+          itm.ocbpId === item.ocbpId
+            ? {
+                ...itm,
+                ocbpMaterialName: itm.ocbpMaterialName || inv.isName || "",
+                ocbpMaterialCode: itm.ocbpMaterialCode || inv.iCode || "",
+              }
+            : itm
+        ),
+      }));
     }
   }, [
     inventories.length,
     item.isId,
+    item.isName,
     item.ocbpId,
     item.ocbpMaterialName,
     item.ocbpMaterialCode,
