@@ -1,6 +1,6 @@
 import { ArrowLeftIcon } from "@heroicons/react/24/solid";
 import { Plus, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import {
@@ -10,6 +10,7 @@ import {
 import { getCatalogueCategories } from "../../../api/Catalogue/catalogueCategory";
 import { getCatalogueSubCategories } from "../../../api/Catalogue/catalogueSubCategory";
 import { getInventorySubcategories } from "../../../api/Order/order";
+import { getInventories } from "../../../api/Inventory/inventory";
 import CKEditorInput from "../../../components/ckeditor-input";
 import SearchableDropdown from "../../../components/SearchableDropdown";
 import { checkDuplicatedItems } from "../../../utils";
@@ -22,6 +23,7 @@ const AddCatalogue = () => {
   const [categories, setCategories] = useState([]);
   const [subCategories, setSubCategories] = useState([]);
   const [inventorySubcategories, setInventorySubcategories] = useState([]);
+  const [inventories, setInventories] = useState([]);
   const [loading, setLoading] = useState(false);
   const [formError, setFormError] = useState("");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -41,12 +43,17 @@ const AddCatalogue = () => {
   useEffect(() => {
     const fetchDropdownData = async () => {
       try {
-        const [categoriesRes, subCategoriesRes, inventorySubcategoriesRes] =
-          await Promise.all([
-            getCatalogueCategories({ pageLimit: -1, pageNumber: 1 }),
-            getCatalogueSubCategories({ pageLimit: -1, pageNumber: 1 }),
-            getInventorySubcategories({ pageLimit: -1, pageNumber: 1 }),
-          ]);
+        const [
+          categoriesRes,
+          subCategoriesRes,
+          inventorySubcategoriesRes,
+          inventoriesRes,
+        ] = await Promise.all([
+          getCatalogueCategories({ pageLimit: -1, pageNumber: 1 }),
+          getCatalogueSubCategories({ pageLimit: -1, pageNumber: 1 }),
+          getInventorySubcategories({ pageLimit: -1, pageNumber: 1 }),
+          getInventories({ pageLimit: -1, pageNumber: 1 }),
+        ]);
         setCategories(
           Array.isArray(categoriesRes.data.data.listData)
             ? categoriesRes.data.data.listData
@@ -60,6 +67,11 @@ const AddCatalogue = () => {
         setInventorySubcategories(
           Array.isArray(inventorySubcategoriesRes.data.data.listData)
             ? inventorySubcategoriesRes.data.data.listData
+            : [],
+        );
+        setInventories(
+          Array.isArray(inventoriesRes.data.data.listData)
+            ? inventoriesRes.data.data.listData
             : [],
         );
       } catch {
@@ -81,6 +93,19 @@ const AddCatalogue = () => {
         (sub) => String(sub.ccId) === String(newProduct.ccId),
       )
     : subCategories;
+
+  // Map isId -> kode bahan (iCode) dari item inventaris.
+  // Kode bahan ada di InventoryItem, bukan di InventorySubcategory,
+  // jadi harus di-derive seperti di halaman RABP (edit-rab-order.jsx).
+  const codeByIsId = useMemo(() => {
+    const map = {};
+    for (const inv of inventories) {
+      if (inv?.isId != null && map[inv.isId] === undefined) {
+        map[inv.isId] = inv.iCode || "";
+      }
+    }
+    return map;
+  }, [inventories]);
 
   // Fungsi upload gambar, return array URL gambar
   async function uploadImages(files) {
@@ -484,6 +509,23 @@ const AddCatalogue = () => {
                                 }
                               }}
                               required
+                            />
+                          </div>
+                          <div className="flex w-full flex-col">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Kode Bahan {index + 1}
+                            </label>
+                            <input
+                              type="text"
+                              readOnly
+                              tabIndex={-1}
+                              value={codeByIsId[item.isId] || ""}
+                              placeholder={
+                                item.isId
+                                  ? "Bahan ini belum punya item inventaris"
+                                  : "Otomatis setelah pilih bahan"
+                              }
+                              className="w-full px-4 py-2 border border-gray-300 rounded bg-gray-100 text-gray-600 cursor-not-allowed focus:outline-none"
                             />
                           </div>
                           <div className="flex w-full flex-col">

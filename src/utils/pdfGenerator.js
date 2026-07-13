@@ -1486,10 +1486,13 @@ const generateRABPChunkPage = (doc, chunk, pageNumber, orderData, isFirstPage) =
     // Add print info
     yPos = addPrintInfo(doc, yPos + 10);
     
+    // Jarak ekstra agar judul tidak menumpuk dengan baris "Dicetak pada"
+    // (return addPrintInfo mepet: hanya +2mm dari baris kedua).
+    const dataOrderY = yPos + 8;
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
-    doc.text('DATA ORDER', 20, yPos);
-    
+    doc.text('DATA ORDER', 20, dataOrderY);
+
     const orderInfoData = [
       [
         orderData.customerName || '-',
@@ -1501,7 +1504,7 @@ const generateRABPChunkPage = (doc, chunk, pageNumber, orderData, isFirstPage) =
     ];
     
     autoTable(doc, {
-      startY: yPos + 15,
+      startY: dataOrderY + 15,
       head: [['NAMA CUSTOMER', 'TANGGAL ORDER', 'DEADLINE', 'ORDER NUMBER', 'PO NUMBER']],
       body: orderInfoData,
       theme: 'grid',
@@ -2015,6 +2018,44 @@ const generateFinalSummaryPage = (doc, totals, summary, profitAllocation, nilaiU
   return yPos;
 };
 
+// Derive nama & kode bahan untuk RABP report.
+// Kode bahan (iCode) ada di InventoryItem, bukan di ocbpItem, jadi di-link lewat isId
+// (fallback: cocokkan nama). Ini mirror logika auto-fill di edit-rab-order.jsx supaya
+// printout konsisten dengan tampilan di layar — bukan dummy "AMERICAN DRILL"/"AM 325".
+const deriveMaterialInfo = (item, inventories = []) => {
+  const storedName = item.ocbpMaterialName || "";
+  const storedCode = item.ocbpMaterialCode || "";
+
+  // Sudah lengkap tersimpan → pakai apa adanya (samakan dengan guard di edit-rab-order).
+  if (storedName && storedCode) {
+    return { materialName: storedName, materialCode: storedCode };
+  }
+
+  let inv = item.isId
+    ? inventories.find((i) => i.isId === item.isId) || null
+    : null;
+
+  if (!inv) {
+    const fallbackName = (item.ocbpMaterialName || item.isName || "")
+      .trim()
+      .toLowerCase();
+    if (fallbackName) {
+      const matches = inventories.filter(
+        (i) => (i.isName || "").trim().toLowerCase() === fallbackName
+      );
+      const distinctCodes = [...new Set(matches.map((i) => i.iCode).filter(Boolean))];
+      if (matches.length > 0 && distinctCodes.length === 1) {
+        inv = matches[0];
+      }
+    }
+  }
+
+  return {
+    materialName: storedName || inv?.isName || item.isName || "-",
+    materialCode: storedCode || inv?.iCode || "-",
+  };
+};
+
 // Main RABP Report function
 export const generateRABPReport = async (summary, orderId) => {
   try {
@@ -2033,26 +2074,41 @@ export const generateRABPReport = async (summary, orderId) => {
       // Silently handle error - using summary data only
     }
 
+    // Fetch inventaris untuk derive nama & kode bahan (isId -> isName/iCode),
+    // sama seperti auto-fill di edit-rab-order.jsx. Gagal fetch → array kosong,
+    // derive akan fallback ke isName / "-".
+    let inventories = [];
+    try {
+      const { getInventories } = await import('../api/Inventory/inventory');
+      const inventoriesResponse = await getInventories({ pageLimit: -1, pageNumber: 1 });
+      inventories = inventoriesResponse?.data?.data?.listData || [];
+    } catch {
+      // Silently handle error - derive akan fallback ke isName
+    }
+
     // Extract size groupings
-    const allSizeGroupings = summary.ocbpItems.map(item => ({
-      productName: item.cpName || "Unknown Product",
-      sizeGroup: item.sGroup || "Unknown Size", 
-      quantity: item.ocbpAmount || 0,
-      materialName: item.ocbpMaterialName || "AMERICAN DRILL",
-      materialCode: item.ocbpMaterialCode || "AM 325",
-      materialNeed: item.ocbpMaterialNeed || 0,
-      materialPrice: item.ocbpMaterialPrice || 0,
-      operationalServices: {
-        columns: item.ocbpOperationalServiceColumn || [],
-        values: item.ocbpOperationalServiceValue || []
-      },
-      utilities: {
-        columns: item.ocbpUtilityColumn || [],
-        values: item.ocbpUtilityValue || []
-      },
-      priceOff: item.ocbpPriceOff || 0,
-      marginPercentage: item.ocbpSettingMarginPercentage || 0
-    }));
+    const allSizeGroupings = summary.ocbpItems.map((item) => {
+      const { materialName, materialCode } = deriveMaterialInfo(item, inventories);
+      return {
+        productName: item.cpName || "Unknown Product",
+        sizeGroup: item.sGroup || "Unknown Size",
+        quantity: item.ocbpAmount || 0,
+        materialName,
+        materialCode,
+        materialNeed: item.ocbpMaterialNeed || 0,
+        materialPrice: item.ocbpMaterialPrice || 0,
+        operationalServices: {
+          columns: item.ocbpOperationalServiceColumn || [],
+          values: item.ocbpOperationalServiceValue || []
+        },
+        utilities: {
+          columns: item.ocbpUtilityColumn || [],
+          values: item.ocbpUtilityValue || []
+        },
+        priceOff: item.ocbpPriceOff || 0,
+        marginPercentage: item.ocbpSettingMarginPercentage || 0
+      };
+    });
 
     // Prepare order data
     const orderData = {
