@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState, useRef } from 'react';
+import React, { useCallback, useEffect, useState, useRef, useMemo } from 'react';
 import { MagnifyingGlassIcon, PlusIcon, XCircleIcon, ChevronDownIcon } from '@heroicons/react/24/solid';
 import AdminSidebar from '../../components/AdminSidebar';
 import AdminNavbar from '../../components/AdminNavbar';
@@ -149,13 +149,12 @@ function ActionDropdown({ onEdit, onDelete, canEdit, canDelete }) {
 
 const CatalogueList = () => {
   const { can } = usePermissions();
-  const [products, setProducts] = useState([]);
+  const [allProducts, setAllProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [subCategories, setSubCategories] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [page, setPage] = useState(1);
-  const [totalPage, setTotalPage] = useState(1);
   const [search, setSearch] = useState('');
   const [searchInput, setSearchInput] = useState('');
   const [searchExpanded, setSearchExpanded] = useState(false);
@@ -210,22 +209,19 @@ const CatalogueList = () => {
     }
   }, []);
 
-  const fetchData = useCallback(async (goToPage) => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
-      const params = { pageLimit: PAGE_LIMIT, pageNumber: goToPage };
-
+      const params = { pageLimit: -1 };
 
       if (search) {
         params.search = search;
       }
 
-
       if (selectedCategory) {
         params.filterCcId = selectedCategory;
       }
-
 
       if (selectedSubCategory) {
         params.filterCsId = selectedSubCategory;
@@ -233,7 +229,6 @@ const CatalogueList = () => {
 
       const res = await getCatalogueProducts(params);
       let productsData = Array.isArray(res.data.data.listData) ? res.data.data.listData : [];
-
 
       if (selectedCategory && !res.data.data.listData.some(p => p.ccId === selectedCategory)) {
         productsData = productsData.filter(prod => prod.ccId === selectedCategory);
@@ -243,22 +238,29 @@ const CatalogueList = () => {
         productsData = productsData.filter(prod => prod.csId === selectedSubCategory);
       }
 
-      setProducts(productsData);
-      const pagination = res.data.pagination || res.data.data?.pagination || {};
-      const pageLast = pagination.pageLast || 1;
-      setTotalPage(Math.max(1, pageLast));
-      setPage(goToPage);
+      productsData.sort((a, b) => a.cpId - b.cpId);
+      setAllProducts(productsData);
     } catch {
       setError('Gagal memuat data produk katalog');
     }
     setLoading(false);
   }, [search, selectedCategory, selectedSubCategory]);
 
+  // Client-side pagination: derive current page items & totalPage from allProducts
+  const totalPage = useMemo(() => Math.max(1, Math.ceil(allProducts.length / PAGE_LIMIT)), [allProducts]);
+  const products = useMemo(() => {
+    const start = (page - 1) * PAGE_LIMIT;
+    return allProducts.slice(start, start + PAGE_LIMIT);
+  }, [allProducts, page]);
+
   useEffect(() => {
     fetchCategories();
     fetchSubCategories();
-    fetchData(1);
-  }, [fetchCategories, fetchSubCategories, fetchData]);
+  }, [fetchCategories, fetchSubCategories]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -296,9 +298,8 @@ const CatalogueList = () => {
       const currentPageData = products.filter(prod => prod.cpId !== deletingProduct.cpId);
       if (currentPageData.length === 0 && page > 1) {
         setPage(page - 1);
-      } else {
-        fetchData(page);
       }
+      fetchData();
     } catch {
       setFormError('Gagal menghapus produk');
     }

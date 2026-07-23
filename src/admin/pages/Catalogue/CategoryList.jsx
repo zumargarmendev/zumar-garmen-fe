@@ -1,5 +1,5 @@
 import { ChevronDownIcon, MagnifyingGlassIcon, PlusIcon, XCircleIcon } from '@heroicons/react/24/solid';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { createCatalogueCategory, deleteCatalogueCategory, getCatalogueCategories, updateCatalogueCategory } from '../../../api/Catalogue/catalogueCategory';
 import AdminNavbar from '../../components/AdminNavbar';
 import AdminSidebar from '../../components/AdminSidebar';
@@ -73,11 +73,10 @@ function ActionDropdown({ onEdit, onDelete, canEdit, canDelete }) {
 
 const CategoryList = () => {
   const { can } = usePermissions();
-  const [categories, setCategories] = useState([]);
+  const [allCategories, setAllCategories] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [page, setPage] = useState(1);
-  const [totalPage, setTotalPage] = useState(1);
   const [search, setSearch] = useState('');
   const [searchInput, setSearchInput] = useState('');
   const [searchExpanded, setSearchExpanded] = useState(false);
@@ -102,26 +101,34 @@ const CategoryList = () => {
   // Sidebar collapse state
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
-  const fetchData = useCallback(async (goToPage) => {
+  const fetchData = useCallback(async (currentSearch) => {
     setLoading(true);
     setError('');
     try {
-      const res = await getCatalogueCategories({ pageLimit: PAGE_LIMIT, pageNumber: goToPage, search });
+      const params = { pageLimit: -1 };
+      if (currentSearch) {
+        params.search = currentSearch;
+      }
+      const res = await getCatalogueCategories(params);
       const categoriesData = Array.isArray(res.data.data.listData) ? res.data.data.listData : [];
-      setCategories(categoriesData);
-      const pagination = res.data.pagination || res.data.data?.pagination || {};
-      const pageLast = pagination.pageLast || 1;
-      setTotalPage(Math.max(1, pageLast));
-      setPage(goToPage);
+      categoriesData.sort((a, b) => a.ccId - b.ccId);
+      setAllCategories(categoriesData);
     } catch {
       setError('Gagal memuat data kategori katalog');
     }
     setLoading(false);
-  }, [search]);
+  }, []);
+
+  // Client-side pagination: derive current page items & totalPage from allCategories
+  const totalPage = useMemo(() => Math.max(1, Math.ceil(allCategories.length / PAGE_LIMIT)), [allCategories]);
+  const categories = useMemo(() => {
+    const start = (page - 1) * PAGE_LIMIT;
+    return allCategories.slice(start, start + PAGE_LIMIT);
+  }, [allCategories, page]);
 
   useEffect(() => {
-    fetchData(1); // Always fetch page 1 on initial load
-  }, [fetchData]);
+    fetchData(search);
+  }, [search, fetchData]);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -140,11 +147,8 @@ const CategoryList = () => {
       setNewCategoryDesc('');
       setSearch('');
       setSearchInput('');
-      if (page !== 1) {
-        setPage(1);
-      } else {
-        fetchData(1);
-      }
+      setPage(1);
+      fetchData('');
     } catch (err) {
       setFormError(err.response?.data?.remark || 'Gagal menambah kategori');
     }
@@ -173,7 +177,7 @@ const CategoryList = () => {
         ccIsActive: Number(editedCategoryStatus)
       });
       setShowEditModal(false);
-      fetchData(page);
+      fetchData(search);
     } catch (err) {
       setFormError(err.response?.data?.remark || 'Gagal mengubah kategori');
     }
@@ -187,8 +191,6 @@ const CategoryList = () => {
 
   const handleConfirmDelete = async () => {
     if (!deletingCategory) return;
-    console.log('DEBUG: deletingCategory:', deletingCategory);
-    console.log('DEBUG: deletingCategory.ccId:', deletingCategory?.ccId);
     setFormLoading(true);
     try {
       await deleteCatalogueCategory(deletingCategory.ccId);
@@ -196,12 +198,10 @@ const CategoryList = () => {
       const currentPageData = categories.filter(cat => cat.ccId !== deletingCategory.ccId);
       if (currentPageData.length === 0 && page > 1) {
         setPage(page - 1);
-      } else {
-        fetchData(page);
       }
-    } catch (err) {
+      fetchData(search);
+    } catch {
       setFormError('Gagal menghapus kategori');
-      console.log('DEBUG: error detail:', err?.response?.data || err);
     }
     setFormLoading(false);
   };

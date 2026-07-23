@@ -2,7 +2,7 @@ import AdminSidebar from '../../components/AdminSidebar';
 import AdminNavbar from '../../components/AdminNavbar';
 import Pagination from '../../components/Pagination';
 import { usePermissions } from '../../../utils/usePermission';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { MagnifyingGlassIcon, PlusIcon, XCircleIcon, ChevronDownIcon } from '@heroicons/react/24/solid';
 import { getCatalogueSubCategories, createCatalogueSubCategory, updateCatalogueSubCategory, deleteCatalogueSubCategory } from '../../../api/Catalogue/catalogueSubCategory';
 import { getCatalogueCategories } from '../../../api/Catalogue/catalogueCategory';
@@ -74,12 +74,11 @@ function ActionDropdown({ onEdit, onDelete, canEdit, canDelete }) {
 
 const SubCategoryList = () => {
   const { can } = usePermissions();
-  const [subCategories, setSubCategories] = useState([]);
+  const [allSubCategories, setAllSubCategories] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [page, setPage] = useState(1);
-  const [totalPage, setTotalPage] = useState(1);
   const [search, setSearch] = useState('');
   const [searchInput, setSearchInput] = useState('');
   const [searchExpanded, setSearchExpanded] = useState(false);
@@ -115,27 +114,38 @@ const SubCategoryList = () => {
     }
   }, []);
 
-  const fetchData = useCallback(async (goToPage) => {
+  const fetchData = useCallback(async (currentSearch) => {
     setLoading(true);
     setError('');
     try {
-      const res = await getCatalogueSubCategories({ pageLimit: PAGE_LIMIT, pageNumber: goToPage, search });
+      const params = { pageLimit: -1 };
+      if (currentSearch) {
+        params.search = currentSearch;
+      }
+      const res = await getCatalogueSubCategories(params);
       const subCategoriesData = Array.isArray(res.data.data.listData) ? res.data.data.listData : [];
-      setSubCategories(subCategoriesData);
-      const pagination = res.data.pagination || res.data.data?.pagination || {};
-      const pageLast = pagination.pageLast || 1;
-      setTotalPage(Math.max(1, pageLast));
-      setPage(goToPage);
+      subCategoriesData.sort((a, b) => a.csId - b.csId);
+      setAllSubCategories(subCategoriesData);
     } catch {
       setError('Gagal memuat data sub kategori katalog');
     }
     setLoading(false);
-  }, [search]);
+  }, []);
+
+  // Client-side pagination: derive current page items & totalPage from allSubCategories
+  const totalPage = useMemo(() => Math.max(1, Math.ceil(allSubCategories.length / PAGE_LIMIT)), [allSubCategories]);
+  const subCategories = useMemo(() => {
+    const start = (page - 1) * PAGE_LIMIT;
+    return allSubCategories.slice(start, start + PAGE_LIMIT);
+  }, [allSubCategories, page]);
 
   useEffect(() => {
     fetchCategories();
-    fetchData(1);
-  }, [fetchCategories, fetchData]);
+  }, [fetchCategories]);
+
+  useEffect(() => {
+    fetchData(search);
+  }, [search, fetchData]);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -159,11 +169,8 @@ const SubCategoryList = () => {
       setNewParentCategoryId('');
       setSearch('');
       setSearchInput('');
-      if (page !== 1) {
-        setPage(1);
-      } else {
-        fetchData(1);
-      }
+      setPage(1);
+      fetchData('');
     } catch (err) {
       setFormError(err.response?.data?.remark || 'Gagal menambah sub kategori');
     }
@@ -192,7 +199,7 @@ const SubCategoryList = () => {
         csDescription: editedSubCategoryDesc
       });
       setShowEditModal(false);
-      fetchData(page);
+      fetchData(search);
     } catch (err) {
       setFormError(err.response?.data?.remark || 'Gagal mengubah sub kategori');
     }
@@ -213,9 +220,8 @@ const SubCategoryList = () => {
       const currentPageData = subCategories.filter(sub => sub.csId !== deletingSubCategory.csId);
       if (currentPageData.length === 0 && page > 1) {
         setPage(page - 1);
-      } else {
-        fetchData(page);
       }
+      fetchData(search);
     } catch {
       setFormError('Gagal menghapus sub kategori');
     }
