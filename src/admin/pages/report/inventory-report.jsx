@@ -8,6 +8,7 @@ import Pagination from "../../components/Pagination";
 import { generateInventoryReport } from "../../../utils/pdfGenerator";
 import { getInventories } from "../../../api/Inventory/inventory";
 import { getInventoryCategories } from "../../../api/Inventory/inventoryCategory";
+import { getInventorySubCategories } from "../../../api/Inventory/inventorySubCategory";
 import { getWarehouses } from "../../../api/Inventory/inventoryWarehouse";
 import { ChevronDownIcon, PrinterIcon } from "@heroicons/react/24/solid";
 
@@ -90,6 +91,7 @@ const InventoryReport = () => {
   const [loading, setLoading] = useState(false);
   const [inventories, setInventories] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [subCategories, setSubCategories] = useState([]);
   const [warehouses, setWarehouses] = useState([]);
   const [error, setError] = useState('');
 
@@ -160,11 +162,13 @@ const InventoryReport = () => {
   // Fetch dropdown data
   const fetchDropdownData = useCallback(async () => {
     try {
-      const [categoriesRes, warehousesRes] = await Promise.all([
+      const [categoriesRes, subCategoriesRes, warehousesRes] = await Promise.all([
         getInventoryCategories({ pageLimit: -1 }),
+        getInventorySubCategories({ pageLimit: -1 }),
         getWarehouses({ pageLimit: -1 }),
       ]);
       setCategories(Array.isArray(categoriesRes.data.data.listData) ? categoriesRes.data.data.listData : []);
+      setSubCategories(Array.isArray(subCategoriesRes.data.data.listData) ? subCategoriesRes.data.data.listData : []);
       setWarehouses(Array.isArray(warehousesRes.data.data.listData) ? warehousesRes.data.data.listData : []);
     } catch (err) {
       console.error('Error fetching dropdown data:', err);
@@ -205,6 +209,11 @@ const InventoryReport = () => {
     return warehouse ? warehouse.iwName : '-';
   };
 
+  const getSubCategoryName = (isId) => {
+    const subCategory = subCategories.find(sub => sub.isId === isId);
+    return subCategory ? subCategory.isName : '-';
+  };
+
   const handleGeneratePDF = () => {
     if (!userHasInteracted) {
       alert('Silakan pilih filter terlebih dahulu');
@@ -224,7 +233,7 @@ const InventoryReport = () => {
       
       console.log(`PDF Export - Using ${allInventories.length} total records`);
       
-      generateInventoryReport(allInventories, filterInfo, categories, warehouses);
+      generateInventoryReport(allInventories, filterInfo, categories, warehouses, subCategories);
     } catch (error) {
       console.error('Error generating PDF:', error);
       alert('Gagal generate PDF. Silakan coba lagi.');
@@ -311,6 +320,7 @@ const InventoryReport = () => {
                 <thead>
                   <tr className="text-primaryColor">
                     <th className="px-4 py-3">Kategori</th>
+                    <th className="px-4 py-3">Barang</th>
                     <th className="px-4 py-3">Kode</th>
                     <th className="px-4 py-3">Jumlah</th>
                     <th className="px-4 py-3">Satuan</th>
@@ -320,12 +330,13 @@ const InventoryReport = () => {
                 <tbody>
                   {inventories.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="text-center py-6 text-gray-400">Tidak ada data inventory</td>
+                      <td colSpan={6} className="text-center py-6 text-gray-400">Tidak ada data inventory</td>
                     </tr>
                   ) : (
                     inventories.map((inv) => (
                       <tr key={inv.iId} className="bg-gray-100 hover:bg-secondaryColor/10 rounded-lg shadow-sm">
                         <td className="px-4 py-3">{getCategoryName(inv.icId)}</td>
+                        <td className="px-4 py-3">{getSubCategoryName(inv.isId)}</td>
                         <td className="px-4 py-3 font-medium">{inv.iCode}</td>
                         <td className="px-4 py-3">{inv.iAmount}</td>
                         <td className="px-4 py-3">{inv.iUnit}</td>

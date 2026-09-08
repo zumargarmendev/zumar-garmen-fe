@@ -2,7 +2,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
-import { formatCurrency } from './index';
+import { formatCurrency, startOfLocalDay, endOfLocalDay } from './index';
 import { getCurrentUser } from '../api/auth';
 import primaryLogo from '../assets/Logo/primary_logo.png';
 
@@ -418,7 +418,7 @@ export const generateDashboardReport = (dashboardData, categoryData, dateRange) 
 };
 
 
-export const generateInventoryReport = (inventoryData, filterInfo, categories = [], warehouses = []) => {
+export const generateInventoryReport = (inventoryData, filterInfo, categories = [], warehouses = [], subCategories = []) => {
   const doc = new jsPDF('landscape');
   
   // Add header
@@ -468,21 +468,27 @@ export const generateInventoryReport = (inventoryData, filterInfo, categories = 
     const warehouse = warehouses.find(wh => wh.iwId === iwId);
     return warehouse ? warehouse.iwName : '-';
   };
-  
+
+  const getSubCategoryName = (isId) => {
+    const subCategory = subCategories.find(sub => sub.isId === isId);
+    return subCategory ? subCategory.isName : '-';
+  };
+
   // Prepare table data
   const tableData = inventoryData.map(inv => [
     getCategoryName(inv.icId),
+    getSubCategoryName(inv.isId),
     inv.iCode || '-',
     inv.iAmount || '0',
     inv.iUnit || '-',
     '', // Aktual Qty - kolom kosong untuk pengecekan fisik
     getWarehouseName(inv.iwId)
   ]);
-  
+
   // Generate table
   autoTable(doc, {
     startY: yPos,
-    head: [['Kategori', 'Kode', 'Jumlah', 'Satuan', 'Aktual Qty', 'Gudang']],
+    head: [['Kategori', 'Barang', 'Kode', 'Jumlah', 'Satuan', 'Aktual Qty', 'Gudang']],
     body: tableData,
     theme: 'grid',
     headStyles: {
@@ -498,12 +504,13 @@ export const generateInventoryReport = (inventoryData, filterInfo, categories = 
       fillColor: [178, 223, 219]
     },
     columnStyles: {
-      0: { cellWidth: 30 }, // Kategori
-      1: { cellWidth: 25 }, // Kode
-      2: { cellWidth: 20 }, // Jumlah
-      3: { cellWidth: 20 }, // Satuan
-      4: { cellWidth: 25 }, // Aktual Qty
-      5: { cellWidth: 30 }  // Gudang
+      0: { cellWidth: 35 }, // Kategori
+      1: { cellWidth: 50 }, // Barang
+      2: { cellWidth: 30 }, // Kode
+      3: { cellWidth: 20 }, // Jumlah
+      4: { cellWidth: 20 }, // Satuan
+      5: { cellWidth: 25 }, // Aktual Qty
+      6: { cellWidth: 35 }  // Gudang
     },
     margin: { left: 20, right: 20 }
   });
@@ -533,9 +540,9 @@ export const generateInventoryRelocationReport = (relocationData, filterInfo, wa
   let filterText = '';
   
   if (dateRange && dateRange.startDate && dateRange.endDate) {
-    filterText += `Periode: ${format(new Date(dateRange.startDate), 'dd/MM/yyyy')} - ${format(new Date(dateRange.endDate), 'dd/MM/yyyy')}`;
+    filterText += `Periode dibuat: ${format(startOfLocalDay(dateRange.startDate), 'dd/MM/yyyy')} - ${format(endOfLocalDay(dateRange.endDate), 'dd/MM/yyyy')}`;
   }
-  
+
   if (selectedWarehouseFrom) {
     const warehouseName = warehouses.find(wh => wh.iwId === selectedWarehouseFrom)?.iwName || 'Tidak diketahui';
     filterText += filterText ? ` | Gudang Asal: ${warehouseName}` : `Gudang Asal: ${warehouseName}`;
@@ -584,9 +591,18 @@ export const generateInventoryRelocationReport = (relocationData, filterInfo, wa
     }
   };
   
+  const formatTanggal = (value) => (value ? format(new Date(value), 'dd/MM/yyyy') : '-');
+
+  const formatTanggalKeputusan = (rel) => {
+    if (rel.irApprovalStatus === 2) return `Disetujui ${formatTanggal(rel.irUpdatedAt)}`;
+    if (rel.irApprovalStatus === 3) return `Ditolak ${formatTanggal(rel.irUpdatedAt)}`;
+    return 'Belum ada keputusan';
+  };
+
   // Prepare table data
   const tableData = relocationData.map(rel => [
-    rel.irUpdatedAt ? format(new Date(rel.irUpdatedAt), 'dd/MM/yyyy') : '-',
+    formatTanggal(rel.irCreatedAt),
+    formatTanggalKeputusan(rel),
     rel.iCode || '-',
     rel.iwNameFrom || getWarehouseName(rel.iwIdFrom) || '-',
     rel.iwNameTo || getWarehouseName(rel.iwIdTo) || '-',
@@ -594,11 +610,11 @@ export const generateInventoryRelocationReport = (relocationData, filterInfo, wa
     rel.iUnit || '-',
     getStatusText(rel.irApprovalStatus)
   ]);
-  
+
   // Generate table
   autoTable(doc, {
     startY: yPos,
-    head: [['Tanggal', 'Kode Item', 'Gudang Asal', 'Gudang Tujuan', 'Jumlah', 'Satuan', 'Status']],
+    head: [['Tgl Dibuat', 'Tgl Keputusan', 'Kode Item', 'Gudang Asal', 'Gudang Tujuan', 'Jumlah', 'Satuan', 'Status']],
     body: tableData,
     theme: 'grid',
     headStyles: {
@@ -614,13 +630,14 @@ export const generateInventoryRelocationReport = (relocationData, filterInfo, wa
       fillColor: [178, 223, 219]
     },
     columnStyles: {
-      0: { cellWidth: 25 }, // Tanggal
-      1: { cellWidth: 30 }, // Kode Item
-      2: { cellWidth: 40 }, // Gudang Asal
-      3: { cellWidth: 40 }, // Gudang Tujuan
-      4: { cellWidth: 20 }, // Jumlah
-      5: { cellWidth: 20 }, // Satuan
-      6: { cellWidth: 25 }  // Status
+      0: { cellWidth: 25 }, // Tgl Dibuat
+      1: { cellWidth: 45 }, // Tgl Keputusan
+      2: { cellWidth: 30 }, // Kode Item
+      3: { cellWidth: 38 }, // Gudang Asal
+      4: { cellWidth: 38 }, // Gudang Tujuan
+      5: { cellWidth: 18 }, // Jumlah
+      6: { cellWidth: 18 }, // Satuan
+      7: { cellWidth: 22 }  // Status
     },
     margin: { left: 20, right: 20 }
   });

@@ -1,5 +1,5 @@
 import { format } from "date-fns";
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import BackgroundImage from "../../../assets/background/bg-zumar.png";
 import AdminNavbar from "../../components/AdminNavbar";
 import AdminSidebar from "../../components/AdminSidebar";
@@ -8,6 +8,7 @@ import DateRangeFilterReport from "../../../components/date-range-filter-report"
 import { generateInventoryRelocationReport } from "../../../utils/pdfGenerator";
 import { getInventoryRelocations } from "../../../api/Inventory/inventoryRelocation";
 import { getWarehouses } from "../../../api/Inventory/inventoryWarehouse";
+import { isWithinDateRange } from "../../../utils";
 import { ChevronDownIcon, PrinterIcon } from "@heroicons/react/24/solid";
 
 const PAGE_LIMIT = 10;
@@ -88,7 +89,7 @@ const InventoryRelocationReport = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [relocations, setRelocations] = useState([]);
+  const [allRelocations, setAllRelocations] = useState([]);
   const [warehouses, setWarehouses] = useState([]);
   const [error, setError] = useState('');
 
@@ -96,10 +97,9 @@ const InventoryRelocationReport = () => {
   const [selectedWarehouseFrom, setSelectedWarehouseFrom] = useState('');
   const [selectedWarehouseTo, setSelectedWarehouseTo] = useState('');
   const [userHasSelectedDate, setUserHasSelectedDate] = useState(false);
-  
+
   // Pagination states
   const [page, setPage] = useState(1);
-  const [totalPage, setTotalPage] = useState(1);
 
   const [dateRange, setDateRange] = useState({
     startDate: '',
@@ -112,16 +112,9 @@ const InventoryRelocationReport = () => {
     setPage(1);
   }, []);
 
-  const handlePageChange = useCallback((newPage) => {
-    if (newPage >= 1 && newPage <= totalPage) {
-      setPage(newPage);
-    }
-  }, [totalPage]);
-
   const fetchRelocationData = useCallback(async () => {
-    // Jangan fetch jika user belum memilih date range
-    if (!userHasSelectedDate || !dateRange.startDate || !dateRange.endDate) {
-      setRelocations([]);
+    if (!userHasSelectedDate) {
+      setAllRelocations([]);
       setLoading(false);
       return;
     }
@@ -129,46 +122,52 @@ const InventoryRelocationReport = () => {
     setLoading(true);
     setError('');
     try {
-      const params = { pageLimit: PAGE_LIMIT, pageNumber: page };
-      
-      // Date filtering
-      if (dateRange.startDate) params.startDate = dateRange.startDate;
-      if (dateRange.endDate) params.endDate = dateRange.endDate;
-      
-      // Warehouse filtering
+      const params = { pageLimit: -1 };
+
       if (selectedWarehouseFrom) {
         params.filterIwIdFrom = selectedWarehouseFrom;
       }
       if (selectedWarehouseTo) {
         params.filterIwIdTo = selectedWarehouseTo;
       }
-      
+
       const res = await getInventoryRelocations(params);
-      let relocationsData = Array.isArray(res.data.data.listData) ? res.data.data.listData : [];
-      
-
-      if (dateRange.startDate || dateRange.endDate) {
-        relocationsData = relocationsData.filter(rel => {
-          if (!rel.irUpdatedAt) return false;
-          const relDate = new Date(rel.irUpdatedAt);
-          const startDate = new Date(dateRange.startDate);
-          const endDate = new Date(dateRange.endDate);
-          return relDate >= startDate && relDate <= endDate;
-        });
-      }
-      
-      setRelocations(relocationsData);
-      
-
-      const pagination = res.data.pagination || res.data.data?.pagination || {};
-      const pageLast = pagination.pageLast || 1;
-      setTotalPage(Math.max(1, pageLast));
+      const data = Array.isArray(res.data.data.listData) ? res.data.data.listData : [];
+      data.sort((a, b) => new Date(a.irCreatedAt) - new Date(b.irCreatedAt));
+      setAllRelocations(data);
     } catch (err) {
       console.error('Error fetching relocations:', err);
       setError('Gagal memuat data transfer inventory');
     }
     setLoading(false);
-  }, [userHasSelectedDate, dateRange, selectedWarehouseFrom, selectedWarehouseTo, page]);
+  }, [userHasSelectedDate, selectedWarehouseFrom, selectedWarehouseTo]);
+
+  const filteredRelocations = useMemo(() => {
+    if (!userHasSelectedDate || !dateRange.startDate || !dateRange.endDate) return [];
+    return allRelocations.filter((rel) =>
+      isWithinDateRange(rel.irCreatedAt, dateRange.startDate, dateRange.endDate)
+    );
+  }, [allRelocations, userHasSelectedDate, dateRange]);
+
+  const totalPage = useMemo(
+    () => Math.max(1, Math.ceil(filteredRelocations.length / PAGE_LIMIT)),
+    [filteredRelocations]
+  );
+
+  const relocations = useMemo(() => {
+    const start = (page - 1) * PAGE_LIMIT;
+    return filteredRelocations.slice(start, start + PAGE_LIMIT);
+  }, [filteredRelocations, page]);
+
+  const handlePageChange = useCallback((newPage) => {
+    if (newPage >= 1 && newPage <= totalPage) {
+      setPage(newPage);
+    }
+  }, [totalPage]);
+
+  useEffect(() => {
+    if (page > totalPage) setPage(totalPage);
+  }, [page, totalPage]);
 
   // Fetch dropdown data
   const fetchDropdownData = useCallback(async () => {
@@ -202,6 +201,14 @@ const InventoryRelocationReport = () => {
     }
   };
 
+  const formatTanggal = (value) => (value ? format(new Date(value), 'dd/MM/yyyy') : '-');
+
+  const formatTanggalKeputusan = (rel) => {
+    if (rel.irApprovalStatus === 2) return `Disetujui ${formatTanggal(rel.irUpdatedAt)}`;
+    if (rel.irApprovalStatus === 3) return `Ditolak ${formatTanggal(rel.irUpdatedAt)}`;
+    return 'Belum ada keputusan';
+  };
+
   const getStatusBadge = (statusCode) => {
     const baseClasses = "px-3 py-1 rounded-full text-xs font-semibold";
     switch (statusCode) {
@@ -216,60 +223,25 @@ const InventoryRelocationReport = () => {
     }
   };
 
-  const handleGeneratePDF = async () => {
+  const handleGeneratePDF = () => {
     if (!userHasSelectedDate) {
       alert('Silakan pilih periode tanggal terlebih dahulu');
       return;
     }
-    
+
+    if (filteredRelocations.length === 0) {
+      alert('Tidak ada data transfer untuk digenerate');
+      return;
+    }
+
     try {
-      const pdfParams = { pageLimit: -1 };
-      
-      if (dateRange.startDate) pdfParams.startDate = dateRange.startDate;
-      if (dateRange.endDate) pdfParams.endDate = dateRange.endDate;
-      
-      if (selectedWarehouseFrom) {
-        pdfParams.filterIwIdFrom = selectedWarehouseFrom;
-      }
-      if (selectedWarehouseTo) {
-        pdfParams.filterIwIdTo = selectedWarehouseTo;
-      }
-      
-      console.log('PDF Export - Fetching all filtered data:', pdfParams);
-      
-
-      const res = await getInventoryRelocations(pdfParams);
-      let allFilteredData = Array.isArray(res.data.data.listData) ? res.data.data.listData : [];
-      
-
-      if (dateRange.startDate || dateRange.endDate) {
-        allFilteredData = allFilteredData.filter(rel => {
-          if (!rel.irUpdatedAt) return false;
-          const relDate = new Date(rel.irUpdatedAt);
-          const startDate = new Date(dateRange.startDate);
-          const endDate = new Date(dateRange.endDate);
-          return relDate >= startDate && relDate <= endDate;
-        });
-      }
-      
-      console.log(`PDF Export - Total filtered records: ${allFilteredData.length}`);
-      
-      if (allFilteredData.length === 0) {
-        alert('Tidak ada data transfer untuk digenerate');
-        return;
-      }
-      
-
       const filterInfo = {
         dateRange,
         selectedWarehouseFrom,
         selectedWarehouseTo
       };
-      
 
-      generateInventoryRelocationReport(allFilteredData, filterInfo, warehouses);
-      
-      console.log('PDF Export completed successfully');
+      generateInventoryRelocationReport(filteredRelocations, filterInfo, warehouses);
     } catch (error) {
       console.error('Error generating PDF:', error);
       alert('Gagal generate PDF. Silakan coba lagi.');
@@ -358,7 +330,8 @@ const InventoryRelocationReport = () => {
               <table className="w-full text-left border-separate border-spacing-y-2 min-w-[1000px]">
                 <thead>
                   <tr className="text-primaryColor">
-                    <th className="px-4 py-3">Tanggal</th>
+                    <th className="px-4 py-3">Tanggal Dibuat</th>
+                    <th className="px-4 py-3">Tanggal Keputusan</th>
                     <th className="px-4 py-3">Kode Item</th>
                     <th className="px-4 py-3">Gudang Asal</th>
                     <th className="px-4 py-3">Gudang Tujuan</th>
@@ -370,17 +343,13 @@ const InventoryRelocationReport = () => {
                 <tbody>
                   {relocations.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="text-center py-6 text-gray-400">Tidak ada data transfer inventory</td>
+                      <td colSpan={8} className="text-center py-6 text-gray-400">Tidak ada data transfer inventory</td>
                     </tr>
                   ) : (
                     relocations.map((rel) => (
                       <tr key={rel.irId} className="bg-gray-100 hover:bg-secondaryColor/10 rounded-lg shadow-sm">
-                        <td className="px-4 py-3">
-                          {rel.irUpdatedAt 
-                            ? format(new Date(rel.irUpdatedAt), 'dd/MM/yyyy') 
-                            : '-'
-                          }
-                        </td>
+                        <td className="px-4 py-3">{formatTanggal(rel.irCreatedAt)}</td>
+                        <td className="px-4 py-3">{formatTanggalKeputusan(rel)}</td>
                         <td className="px-4 py-3 font-medium">{rel.iCode}</td>
                         <td className="px-4 py-3">{rel.iwNameFrom || '-'}</td>
                         <td className="px-4 py-3">{rel.iwNameTo || '-'}</td>
