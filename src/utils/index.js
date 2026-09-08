@@ -34,6 +34,25 @@ export const checkDuplicatedItems = (items, key) => {
   return new Set(ids).size !== ids.length;
 };
 
+export const startOfLocalDay = (dateOnly) =>
+  dateOnly ? new Date(`${dateOnly}T00:00:00`) : null;
+
+export const endOfLocalDay = (dateOnly) =>
+  dateOnly ? new Date(`${dateOnly}T23:59:59.999`) : null;
+
+export const isWithinDateRange = (value, startDateOnly, endDateOnly) => {
+  if (!value) return false;
+  const target = new Date(value);
+  if (Number.isNaN(target.getTime())) return false;
+
+  const start = startOfLocalDay(startDateOnly);
+  const end = endOfLocalDay(endDateOnly);
+
+  if (start && target < start) return false;
+  if (end && target > end) return false;
+  return true;
+};
+
 export const calculateRABItemValues = (item) => {
   const materialNeed = item.ocbpMaterialNeed || 0;
   const materialPrice = item.ocbpMaterialPrice || 0;

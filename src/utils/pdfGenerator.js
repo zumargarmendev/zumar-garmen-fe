@@ -23,10 +23,98 @@ const COLORS = {
 
 
 const CONFIG = {
-  IMAGE_TIMEOUT: 8000,
+  IMAGE_TIMEOUT: 6000,
   CANVAS_SIZE: 72,
   MIN_BASE64_LENGTH: 100,
-  PDF_PAGE_HEIGHT: 200
+  PDF_PAGE_HEIGHT: 200,
+  IMAGE_CONCURRENCY: 6
+};
+
+const blobToBase64 = (blob) =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const result = reader.result;
+      if (result && result.length > CONFIG.MIN_BASE64_LENGTH) {
+        resolve(result);
+      } else {
+        reject(new Error('Hasil base64 kosong / tidak valid'));
+      }
+    };
+    reader.onerror = () => reject(new Error('FileReader gagal membaca blob'));
+    reader.readAsDataURL(blob);
+  });
+
+const fetchImageViaProxy = async (imageUrl) => {
+  const size = CONFIG.CANVAS_SIZE;
+  const proxyUrl = `https://images.weserv.nl/?url=${encodeURIComponent(imageUrl)}&output=png&w=${size}&h=${size}&fit=cover&q=100`;
+  const response = await fetch(proxyUrl, {
+    signal: AbortSignal.timeout(CONFIG.IMAGE_TIMEOUT)
+  });
+  if (!response.ok) throw new Error(`WeServ HTTP ${response.status}`);
+  return blobToBase64(await response.blob());
+};
+
+const fetchImageAndDownscale = (imageUrl) =>
+  new Promise((resolve, reject) => {
+    const size = CONFIG.CANVAS_SIZE;
+    const img = new Image();
+    const timer = setTimeout(
+      () => reject(new Error('Timeout memuat gambar langsung')),
+      CONFIG.IMAGE_TIMEOUT
+    );
+
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      clearTimeout(timer);
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = size;
+        canvas.height = size;
+        const side = Math.min(img.naturalWidth, img.naturalHeight);
+        const sx = (img.naturalWidth - side) / 2;
+        const sy = (img.naturalHeight - side) / 2;
+        canvas.getContext('2d').drawImage(img, sx, sy, side, side, 0, 0, size, size);
+        resolve(canvas.toDataURL('image/png'));
+      } catch (err) {
+        reject(err);
+      }
+    };
+    img.onerror = () => {
+      clearTimeout(timer);
+      reject(new Error('Gagal memuat gambar langsung'));
+    };
+    img.src = imageUrl;
+  });
+
+const loadReportImage = async (imageUrl) => {
+  try {
+    return await fetchImageViaProxy(imageUrl);
+  } catch {
+    try {
+      return await fetchImageAndDownscale(imageUrl);
+    } catch {
+      return null;
+    }
+  }
+};
+
+const runWithConcurrency = async (items, limit, worker) => {
+  const results = new Array(items.length);
+  let cursor = 0;
+
+  const runners = Array.from(
+    { length: Math.min(limit, items.length) },
+    async () => {
+      while (cursor < items.length) {
+        const index = cursor++;
+        results[index] = await worker(items[index], index);
+      }
+    }
+  );
+
+  await Promise.all(runners);
+  return results;
 };
 
 
@@ -551,7 +639,7 @@ export const generateOrderReport = (/* _orderData, _dateRange */) => {
   doc.save(`Laporan_Pesanan_${getFormattedDate('yyyy-MM-dd_HH-mm-ss')}.pdf`);
 };
 
-export const generateCatalogueReport = async (catalogueData, filterInfo, categories = [], subCategories = []) => {
+export const generateCatalogueReport = async (catalogueData, filterInfo, categories = [], subCategories = [], onProgress) => {
   const doc = new jsPDF('landscape');
   
   // Add header
@@ -605,140 +693,6 @@ export const generateCatalogueReport = async (catalogueData, filterInfo, categor
   
   yPos += 8;
 
-  // Optimized WeServ proxy for reliable image conversion
-  const convertImageToBase64 = async (imageUrl) => {
-    try {
-      // Strategy 1: High resolution download (72x72) for crisp rendering at 18x18
-      const proxyUrl = `https://images.weserv.nl/?url=${encodeURIComponent(imageUrl)}&output=png&w=72&h=72&fit=cover&q=100`;
-      console.log(`Trying WeServ strategy 1 for image: ${imageUrl.substring(imageUrl.lastIndexOf('/') + 1)}`);
-      
-      const response = await fetch(proxyUrl, { 
-        signal: AbortSignal.timeout(10000) // 10 second timeout
-      });
-      
-      if (response.ok) {
-        const blob = await response.blob();
-        console.log(`WeServ strategy 1 success, blob size: ${blob.size} bytes`);
-        
-        const base64 = await new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onloadend = () => {
-            const result = reader.result;
-            if (result && result.length > CONFIG.MIN_BASE64_LENGTH) {
-              console.log(`Base64 conversion success, length: ${result.length}`);
-              resolve(result);
-            } else {
-              reject(new Error('Invalid base64 result'));
-            }
-          };
-          reader.onerror = () => reject(new Error('FileReader failed'));
-          reader.readAsDataURL(blob);
-        });
-        
-        return base64;
-      } else {
-        console.log(`WeServ strategy 1 failed with status: ${response.status}`);
-      }
-    } catch (error) {
-      console.log('WeServ strategy 1 error:', error.message);
-    }
-    
-    try {
-      // Strategy 2: Medium resolution fallback (54x54) for crisp rendering
-      const proxyUrl = `https://images.weserv.nl/?url=${encodeURIComponent(imageUrl)}&output=png&w=54&h=54&fit=cover&q=100`;
-      console.log(`Trying WeServ strategy 2 for image: ${imageUrl.substring(imageUrl.lastIndexOf('/') + 1)}`);
-      
-      const response = await fetch(proxyUrl, { 
-        signal: AbortSignal.timeout(10000) // 10 second timeout
-      });
-      
-      if (response.ok) {
-        const blob = await response.blob();
-        console.log(`WeServ strategy 2 success, blob size: ${blob.size} bytes`);
-        
-        const base64 = await new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onloadend = () => {
-            const result = reader.result;
-            if (result && result.length > CONFIG.MIN_BASE64_LENGTH) {
-              console.log(`Base64 conversion success, length: ${result.length}`);
-              resolve(result);
-            } else {
-              reject(new Error('Invalid base64 result'));
-            }
-          };
-          reader.onerror = () => reject(new Error('FileReader failed'));
-          reader.readAsDataURL(blob);
-        });
-        
-        return base64;
-      } else {
-        console.log(`WeServ strategy 2 failed with status: ${response.status}`);
-      }
-    } catch (error) {
-      console.log('WeServ strategy 2 error:', error.message);
-    }
-    
-    try {
-      // Strategy 3: Basic resolution fallback (36x36) for crisp rendering
-      const proxyUrl = `https://images.weserv.nl/?url=${encodeURIComponent(imageUrl)}&output=png&w=36&h=36&fit=cover&q=100`;
-      console.log(`Trying WeServ strategy 3 for image: ${imageUrl.substring(imageUrl.lastIndexOf('/') + 1)}`);
-      
-      const response = await fetch(proxyUrl, { 
-        signal: AbortSignal.timeout(8000) // 8 second timeout
-      });
-      
-      if (response.ok) {
-        const blob = await response.blob();
-        console.log(`WeServ strategy 3 success, blob size: ${blob.size} bytes`);
-        
-        const base64 = await new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onloadend = () => {
-            const result = reader.result;
-            if (result && result.length > CONFIG.MIN_BASE64_LENGTH) {
-              console.log(`Base64 conversion success, length: ${result.length}`);
-              resolve(result);
-            } else {
-              reject(new Error('Invalid base64 result'));
-            }
-          };
-          reader.onerror = () => reject(new Error('FileReader failed'));
-          reader.readAsDataURL(blob);
-        });
-        
-        return base64;
-      } else {
-        console.log(`WeServ strategy 3 failed with status: ${response.status}`);
-      }
-    } catch (error) {
-      console.log('WeServ strategy 3 error:', error.message);
-    }
-    
-    console.log(`All WeServ strategies failed for image: ${imageUrl.substring(imageUrl.lastIndexOf('/') + 1)}`);
-    return null;
-  };
-
-  const processImagesSequentially = async (catalogueData) => {
-    const imageMap = new Map();
-    let _successCount = 0;
-    
-    for (let i = 0; i < catalogueData.length; i++) {
-      const prod = catalogueData[i];
-      const imageInfo = getImageInfo(prod);
-      
-      if (imageInfo.hasImage) {
-        const base64Image = await convertImageToBase64(imageInfo.url);
-        if (base64Image) {
-          imageMap.set(i, base64Image);
-          _successCount++;
-        }
-      }
-    }
-    
-    return { imageMap };
-  };
-
   const getImageInfo = (prod) => {
     if (prod.cpImage && Array.isArray(prod.cpImage) && prod.cpImage.length > 0) {
       return {
@@ -749,7 +703,39 @@ export const generateCatalogueReport = async (catalogueData, filterInfo, categor
     }
     return { hasImage: false, url: '', shortUrl: 'Tidak Ada' };
   };
-  
+
+  const loadCatalogueImages = async (products) => {
+    const urlByRow = new Map();
+    products.forEach((prod, rowIndex) => {
+      const info = getImageInfo(prod);
+      if (info.hasImage) urlByRow.set(rowIndex, info.url);
+    });
+
+    const uniqueUrls = [...new Set(urlByRow.values())];
+    let finished = 0;
+
+    const loaded = await runWithConcurrency(
+      uniqueUrls,
+      CONFIG.IMAGE_CONCURRENCY,
+      async (url) => {
+        const base64 = await loadReportImage(url);
+        finished += 1;
+        onProgress?.(finished, uniqueUrls.length);
+        return base64;
+      }
+    );
+
+    const base64ByUrl = new Map(uniqueUrls.map((url, i) => [url, loaded[i]]));
+
+    const imageMap = new Map();
+    urlByRow.forEach((url, rowIndex) => {
+      const base64 = base64ByUrl.get(url);
+      if (base64) imageMap.set(rowIndex, base64);
+    });
+
+    return imageMap;
+  };
+
   const getCategoryName = (ccId) => {
     const category = categories.find(cat => cat.ccId === ccId);
     return category ? category.ccName : '-';
@@ -773,9 +759,9 @@ export const generateCatalogueReport = async (catalogueData, filterInfo, categor
     return cleanText.substring(0, maxLength) + "...";
   };
   
-  const { imageMap } = await processImagesSequentially(catalogueData);
-  
-  
+  const imageMap = await loadCatalogueImages(catalogueData);
+
+
   // Prepare table data
   const tableData = catalogueData.map((prod) => {
     const _imageInfo = getImageInfo(prod);
@@ -1706,9 +1692,6 @@ const generateOperationalSection = (doc, chunk, startY) => {
     });
   });
 
-  // Jangan di-sort: Set mempertahankan urutan insert, sehingga urutan baris mengikuti
-  // urutan kolom di ocbpOperationalServiceColumn — sama dengan urutan input di
-  // edit-rab-order.jsx (grid 2 kolom, dibaca kiri→kanan per baris).
   const operationalServicesList = Array.from(allOperationalServices);
   const operationalData = [];
 
@@ -1780,8 +1763,6 @@ const generateUtilitiesSection = (doc, chunk, startY) => {
     });
   });
 
-  // Sama seperti section operasional: pertahankan urutan kolom dari input,
-  // bukan urut abjad.
   const utilitiesList = Array.from(allUtilities);
   const bekakasData = [];
 

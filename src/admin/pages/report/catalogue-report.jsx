@@ -104,6 +104,9 @@ const CatalogueReport = () => {
   const [totalPage, setTotalPage] = useState(1);
   const [allProducts, setAllProducts] = useState([]);
 
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const [pdfProgress, setPdfProgress] = useState(null);
+
   const handlePageChange = useCallback((newPage) => {
     if (newPage >= 1 && newPage <= totalPage) {
       setPage(newPage);
@@ -256,23 +259,29 @@ const CatalogueReport = () => {
         selectedSubCategory
       };
       
-      console.log(`PDF Export - Using ${allProducts.length} total records`);
-      
-      const originalText = 'Buat Laporan PDF';
-      document.querySelector('[data-pdf-button]').textContent = 'Generating PDF...';
-      document.querySelector('[data-pdf-button]').disabled = true;
-      
-      await generateCatalogueReport(allProducts, filterInfo, categories, subCategories);
-      
-      document.querySelector('[data-pdf-button]').textContent = originalText;
-      document.querySelector('[data-pdf-button]').disabled = false;
+      setIsGeneratingPdf(true);
+      setPdfProgress(null);
+
+      await generateCatalogueReport(
+        allProducts,
+        filterInfo,
+        categories,
+        subCategories,
+        (done, total) => setPdfProgress({ done, total })
+      );
     } catch (error) {
       console.error('Error generating PDF:', error);
       alert('Gagal generate PDF. Silakan coba lagi.');
-      
-      document.querySelector('[data-pdf-button]').textContent = 'Buat Laporan PDF';
-      document.querySelector('[data-pdf-button]').disabled = false;
+    } finally {
+      setIsGeneratingPdf(false);
+      setPdfProgress(null);
     }
+  };
+
+  const pdfButtonLabel = () => {
+    if (!isGeneratingPdf) return 'Print Katalog';
+    if (!pdfProgress) return 'Menyiapkan...';
+    return `Memproses gambar ${pdfProgress.done}/${pdfProgress.total}`;
   };
 
 
@@ -332,11 +341,11 @@ const CatalogueReport = () => {
             <div className="ml-auto flex items-center gap-4">
               <button
                 onClick={handleGeneratePDF}
-                data-pdf-button
-                className="bg-primaryColor hover:bg-secondaryColor text-white px-6 py-3 rounded-lg font-semibold flex items-center gap-2 transition-colors shadow-lg disabled:opacity-50"
+                disabled={isGeneratingPdf}
+                className="bg-primaryColor hover:bg-secondaryColor text-white px-6 py-3 rounded-lg font-semibold flex items-center gap-2 transition-colors shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <PrinterIcon className="w-4 h-4" />
-                Print Katalog
+                {pdfButtonLabel()}
               </button>
             </div>
           </div>
