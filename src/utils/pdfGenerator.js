@@ -1706,7 +1706,10 @@ const generateOperationalSection = (doc, chunk, startY) => {
     });
   });
 
-  const operationalServicesList = Array.from(allOperationalServices).sort();
+  // Jangan di-sort: Set mempertahankan urutan insert, sehingga urutan baris mengikuti
+  // urutan kolom di ocbpOperationalServiceColumn — sama dengan urutan input di
+  // edit-rab-order.jsx (grid 2 kolom, dibaca kiri→kanan per baris).
+  const operationalServicesList = Array.from(allOperationalServices);
   const operationalData = [];
 
   operationalServicesList.forEach(service => {
@@ -1777,7 +1780,9 @@ const generateUtilitiesSection = (doc, chunk, startY) => {
     });
   });
 
-  const utilitiesList = Array.from(allUtilities).sort();
+  // Sama seperti section operasional: pertahankan urutan kolom dari input,
+  // bukan urut abjad.
+  const utilitiesList = Array.from(allUtilities);
   const bekakasData = [];
 
   utilitiesList.forEach(utility => {
