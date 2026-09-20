@@ -1,4 +1,5 @@
 import api from '../axios';
+import { SORT } from '../../utils/listSorting';
 
 export const createInventoryRelocation = (data) => {
   console.log('Sending inventory relocation request with data:', data);
@@ -10,7 +11,7 @@ export const createInventoryRelocation = (data) => {
 };
 
 export const getInventoryRelocations = (params) => {
-  return api.get('/api/inventory-relocation', { params });
+  return api.get('/api/inventory-relocation', { params: { ...SORT.relocation, ...params } });
 };
 
 export const approveInventoryRelocation = (irId, irReceivedBy) => {

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { ChevronDownIcon, CheckIcon, XMarkIcon, EyeIcon, MagnifyingGlassIcon, XCircleIcon } from '@heroicons/react/24/solid';
 import { getInventoryRelocations, approveInventoryRelocation, rejectInventoryRelocation } from '../../../api/Inventory/inventoryRelocation';
 import { getWarehouses } from '../../../api/Inventory/inventoryWarehouse';
@@ -13,7 +13,10 @@ const PAGE_LIMIT = 10;
 
 const InventoryRelocation = () => {
   const { can } = usePermissions();
-  const [allRelocations, setAllRelocations] = useState([]);
+  const [relocations, setRelocations] = useState([]);
+  const [totalPage, setTotalPage] = useState(1);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const refresh = () => setRefreshKey((k) => k + 1);
   const [warehouses, setWarehouses] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -45,39 +48,38 @@ const InventoryRelocation = () => {
     }
   }, []);
 
-  // Fetch all relocations with filters
-  const fetchRelocations = useCallback(async (currentSearch, warehouseFrom, warehouseTo) => {
+  const fetchRelocations = useCallback(async (currentSearch, warehouseFrom, warehouseTo, goToPage) => {
     setLoading(true);
     setError('');
     try {
-      const params = { pageLimit: -1 };
+      const params = { pageLimit: PAGE_LIMIT, pageNumber: goToPage };
       if (currentSearch) params.search = currentSearch;
       if (warehouseFrom) params.filterIwIdFrom = warehouseFrom;
       if (warehouseTo) params.filterIwIdTo = warehouseTo;
       const res = await getInventoryRelocations(params);
-      const data = Array.isArray(res.data.data.listData) ? res.data.data.listData : [];
-      data.sort((a, b) => a.irId - b.irId);
-      setAllRelocations(data);
+      const pageLast = Math.max(1, res?.data?.data?.pagination?.pageLast || 1);
+
+      if (goToPage > pageLast) {
+        setPage(pageLast);
+        return;
+      }
+
+      setRelocations(Array.isArray(res.data.data.listData) ? res.data.data.listData : []);
+      setTotalPage(pageLast);
     } catch {
       setError('Gagal memuat data transfer inventory');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, []);
 
   useEffect(() => {
     fetchWarehouses();
   }, [fetchWarehouses]);
 
-  // Client-side pagination
-  const totalPage = useMemo(() => Math.max(1, Math.ceil(allRelocations.length / PAGE_LIMIT)), [allRelocations]);
-  const relocations = useMemo(() => {
-    const start = (page - 1) * PAGE_LIMIT;
-    return allRelocations.slice(start, start + PAGE_LIMIT);
-  }, [allRelocations, page]);
-
   useEffect(() => {
-    fetchRelocations(search, selectedWarehouseFrom, selectedWarehouseTo);
-  }, [search, selectedWarehouseFrom, selectedWarehouseTo, fetchRelocations]);
+    fetchRelocations(search, selectedWarehouseFrom, selectedWarehouseTo, page);
+  }, [search, selectedWarehouseFrom, selectedWarehouseTo, page, refreshKey, fetchRelocations]);
 
   // Handlers for search and pagination
   const handleSearch = (e) => {
@@ -198,7 +200,7 @@ const InventoryRelocation = () => {
   const handleApprove = async (relocation, receivedBy) => {
     try {
       await approveInventoryRelocation(relocation.irId, receivedBy);
-      await fetchRelocations(search, selectedWarehouseFrom, selectedWarehouseTo);
+      refresh();
     } catch (err) {
       console.error('Failed to approve relocation:', err);
     }
@@ -208,7 +210,7 @@ const InventoryRelocation = () => {
   const handleReject = async (relocation) => {
     try {
       await rejectInventoryRelocation(relocation.irId);
-      await fetchRelocations(search, selectedWarehouseFrom, selectedWarehouseTo);
+      refresh();
     } catch (err) {
       console.error('Failed to reject relocation:', err);
     }

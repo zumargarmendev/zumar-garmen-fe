@@ -99,6 +99,8 @@ export default function RABTemplateList() {
   const [templates, setTemplates] = useState([]);
   const [page, setPage] = useState(1);
   const [totalPage, setTotalPage] = useState(1);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const refresh = () => setRefreshKey((k) => k + 1);
   const PAGE_LIMIT = 10;
   const navigate = useNavigate();
 
@@ -118,13 +120,16 @@ export default function RABTemplateList() {
         pageNumber: goToPage,
       });
 
-      const data = response.data.data.listData;
-      setTemplates(data || []);
-
-      // Extract pagination data
       const pagination = response.data.pagination || response.data.data?.pagination || {};
-      const pageLast = pagination.pageLast || 1;
-      setTotalPage(Math.max(1, pageLast));
+      const pageLast = Math.max(1, pagination.pageLast || 1);
+
+      if (goToPage > pageLast) {
+        setPage(pageLast);
+        return;
+      }
+
+      setTemplates(response.data.data.listData || []);
+      setTotalPage(pageLast);
     } catch (error) {
       console.error("Error fetching data:", error);
       setError("Gagal memuat data. Silakan coba lagi.");
@@ -140,7 +145,7 @@ export default function RABTemplateList() {
       setLoading(true);
       setError(null);
       await deleteOperationalUtilityTemplate(outId);
-      await fetchData();
+      refresh();
     } catch (error) {
       console.error("Error deleting RABP template:", error);
       setError("Gagal menghapus template RABP. Silakan coba lagi.");
@@ -178,8 +183,6 @@ export default function RABTemplateList() {
       setShowActionModal(false);
       setSelectedOrder(null);
       setModalAction(null);
-
-      await fetchData(page);
     } catch (err) {
       console.error("Error performing action:", err);
       setActionError(err.message || "Failed to perform action");
@@ -196,7 +199,7 @@ export default function RABTemplateList() {
 
   useEffect(() => {
     fetchData(page);
-  }, [page]);
+  }, [page, refreshKey]);
 
   return (
     <div
@@ -294,7 +297,7 @@ export default function RABTemplateList() {
                 <p className="text-red-500 font-semibold mb-4">{error}</p>
                 <div className="space-y-2">
                   <button
-                    onClick={() => fetchData()}
+                    onClick={() => fetchData(page)}
                     className="px-4 py-2 bg-primaryColor text-white rounded-lg hover:bg-primaryColor/90"
                   >
                     Coba Lagi

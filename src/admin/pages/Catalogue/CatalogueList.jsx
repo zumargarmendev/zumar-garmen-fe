@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState, useRef, useMemo } from 'react';
+import React, { useCallback, useEffect, useState, useRef } from 'react';
 import { MagnifyingGlassIcon, PlusIcon, XCircleIcon, ChevronDownIcon } from '@heroicons/react/24/solid';
 import AdminSidebar from '../../components/AdminSidebar';
 import AdminNavbar from '../../components/AdminNavbar';
@@ -149,7 +149,10 @@ function ActionDropdown({ onEdit, onDelete, canEdit, canDelete }) {
 
 const CatalogueList = () => {
   const { can } = usePermissions();
-  const [allProducts, setAllProducts] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [totalPage, setTotalPage] = useState(1);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const refresh = () => setRefreshKey((k) => k + 1);
   const [categories, setCategories] = useState([]);
   const [subCategories, setSubCategories] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -209,11 +212,11 @@ const CatalogueList = () => {
     }
   }, []);
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (goToPage) => {
     setLoading(true);
     setError('');
     try {
-      const params = { pageLimit: -1 };
+      const params = { pageLimit: PAGE_LIMIT, pageNumber: goToPage };
 
       if (search) {
         params.search = search;
@@ -228,30 +231,21 @@ const CatalogueList = () => {
       }
 
       const res = await getCatalogueProducts(params);
-      let productsData = Array.isArray(res.data.data.listData) ? res.data.data.listData : [];
+      const pageLast = Math.max(1, res?.data?.data?.pagination?.pageLast || 1);
 
-      if (selectedCategory && !res.data.data.listData.some(p => p.ccId === selectedCategory)) {
-        productsData = productsData.filter(prod => prod.ccId === selectedCategory);
+      if (goToPage > pageLast) {
+        setPage(pageLast);
+        return;
       }
 
-      if (selectedSubCategory && !res.data.data.listData.some(p => p.csId === selectedSubCategory)) {
-        productsData = productsData.filter(prod => prod.csId === selectedSubCategory);
-      }
-
-      productsData.sort((a, b) => a.cpId - b.cpId);
-      setAllProducts(productsData);
+      setProducts(Array.isArray(res.data.data.listData) ? res.data.data.listData : []);
+      setTotalPage(pageLast);
     } catch {
       setError('Gagal memuat data produk katalog');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, [search, selectedCategory, selectedSubCategory]);
-
-  // Client-side pagination: derive current page items & totalPage from allProducts
-  const totalPage = useMemo(() => Math.max(1, Math.ceil(allProducts.length / PAGE_LIMIT)), [allProducts]);
-  const products = useMemo(() => {
-    const start = (page - 1) * PAGE_LIMIT;
-    return allProducts.slice(start, start + PAGE_LIMIT);
-  }, [allProducts, page]);
 
   useEffect(() => {
     fetchCategories();
@@ -259,8 +253,8 @@ const CatalogueList = () => {
   }, [fetchCategories, fetchSubCategories]);
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    fetchData(page);
+  }, [page, refreshKey, fetchData]);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -295,11 +289,7 @@ const CatalogueList = () => {
       await deleteCatalogueProduct(deletingProduct.cpId);
       setShowDeleteModal(false);
       setDeletingProduct(null);
-      const currentPageData = products.filter(prod => prod.cpId !== deletingProduct.cpId);
-      if (currentPageData.length === 0 && page > 1) {
-        setPage(page - 1);
-      }
-      fetchData();
+      refresh();
     } catch {
       setFormError('Gagal menghapus produk');
     }

@@ -1,15 +1,10 @@
 import api from '../axios';
+import { SORT } from '../../utils/listSorting';
 
-/**
- * Get all orders with pagination, search, and filters
- * @param {Object} params - Query parameters for filtering orders
- * @returns {Promise} API response containing orders data
- */
 export const getOrders = async (params) => {
   try {
-    console.log('API Request params:', params);
     const response = await api.get('/api/order', {
-      params,
+      params: { ...SORT.order, ...params },
       paramsSerializer: params => {
         return Object.entries(params)
           .filter(([, value]) => value !== null && value !== undefined)

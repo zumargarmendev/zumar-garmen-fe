@@ -2,7 +2,7 @@ import AdminSidebar from '../../components/AdminSidebar';
 import AdminNavbar from '../../components/AdminNavbar';
 import Pagination from '../../components/Pagination';
 import { usePermissions } from '../../../utils/usePermission';
-import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react';
+import React, { useCallback, useEffect, useState, useRef } from 'react';
 import { MagnifyingGlassIcon, PlusIcon, XCircleIcon, ChevronDownIcon, ArrowUpTrayIcon } from '@heroicons/react/24/solid';
 import { getInventorySubCategories, createInventorySubCategory, updateInventorySubCategory, deleteInventorySubCategory, downloadInventorySubCategoryTemplate, massUploadInventorySubCategory } from '../../../api/Inventory/inventorySubCategory';
 import { getInventoryCategories } from '../../../api/Inventory/inventoryCategory';
@@ -102,8 +102,11 @@ function ActionDropdown({ onEdit, onDelete, canEdit, canDelete }) {
 
 const SubCategoryList = () => {
   const { can } = usePermissions();
-  const [allSubCategories, setAllSubCategories] = useState([]);
-  const [allCategories, setAllCategories] = useState([]); // For dropdowns
+  const [subCategories, setSubCategories] = useState([]);
+  const [totalPage, setTotalPage] = useState(1);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const refresh = () => setRefreshKey((k) => k + 1);
+  const [allCategories, setAllCategories] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [page, setPage] = useState(1);
@@ -138,22 +141,29 @@ const SubCategoryList = () => {
   // New state for search expansion
   const [searchExpanded, setSearchExpanded] = useState(false);
 
-  const fetchSubCategories = useCallback(async (currentSearch) => {
+  const fetchSubCategories = useCallback(async (currentSearch, goToPage) => {
     setLoading(true);
     setError('');
     try {
-      const params = { pageLimit: -1 };
+      const params = { pageLimit: PAGE_LIMIT, pageNumber: goToPage };
       if (currentSearch) {
         params.search = currentSearch;
       }
       const res = await getInventorySubCategories(params);
-      const data = Array.isArray(res.data.data.listData) ? res.data.data.listData : [];
-      data.sort((a, b) => a.isId - b.isId);
-      setAllSubCategories(data);
+      const pageLast = Math.max(1, res?.data?.data?.pagination?.pageLast || 1);
+
+      if (goToPage > pageLast) {
+        setPage(pageLast);
+        return;
+      }
+
+      setSubCategories(Array.isArray(res.data.data.listData) ? res.data.data.listData : []);
+      setTotalPage(pageLast);
     } catch {
       setError('Gagal memuat data barang');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, []);
 
   // Fetch all categories for the dropdowns
@@ -193,16 +203,9 @@ const SubCategoryList = () => {
     fetchAllCategories();
   }, [newParentCategoryId]);
 
-  // Client-side pagination
-  const totalPage = useMemo(() => Math.max(1, Math.ceil(allSubCategories.length / PAGE_LIMIT)), [allSubCategories]);
-  const subCategories = useMemo(() => {
-    const start = (page - 1) * PAGE_LIMIT;
-    return allSubCategories.slice(start, start + PAGE_LIMIT);
-  }, [allSubCategories, page]);
-
   useEffect(() => {
-    fetchSubCategories(search);
-  }, [search, fetchSubCategories]);
+    fetchSubCategories(search, page);
+  }, [search, page, refreshKey, fetchSubCategories]);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -237,7 +240,8 @@ const SubCategoryList = () => {
       await createInventorySubCategory({ isName: newSubCategoryName, icId: newParentCategoryId });
       setShowAddModal(false);
       resetAddModal();
-      fetchSubCategories(search);
+      setPage(1);
+      refresh();
     } catch (err) {
       setFormError(err.response?.data?.remark || 'Gagal menambah barang');
     }
@@ -273,7 +277,7 @@ const SubCategoryList = () => {
     try {
       await updateInventorySubCategory(editingSubCategory.isId, { isName: editedSubCategoryName, icId: editedParentCategoryId });
       setShowEditModal(false);
-      fetchSubCategories(search);
+      refresh();
     } catch (err) {
       setFormError(err.response?.data?.remark || 'Gagal mengubah barang');
     }
@@ -291,16 +295,7 @@ const SubCategoryList = () => {
     try {
       await deleteInventorySubCategory(deletingSubCategory.isId);
       setShowDeleteModal(false);
-
-      // Cek apakah halaman saat ini akan kosong setelah delete
-      const currentPageData = subCategories.filter(
-        (sub) => sub.isId !== deletingSubCategory.isId,
-      );
-      if (currentPageData.length === 0 && page > 1) {
-        setPage(page - 1);
-      }
-
-      fetchSubCategories(search);
+      refresh();
     } catch (err) {
       console.error("Failed to delete sub-category", err);
     }
@@ -624,7 +619,8 @@ const SubCategoryList = () => {
             title="Mass Upload Sub Kategori Inventory"
             templateFileName="Inventory_Subcategory_Upload_Template.xlsx"
             onUploadSuccess={() => {
-              fetchSubCategories(search);
+              setPage(1);
+              refresh();
             }}
           />
         </div>

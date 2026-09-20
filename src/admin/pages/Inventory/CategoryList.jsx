@@ -4,7 +4,7 @@ import {
   PlusIcon,
   XCircleIcon,
 } from "@heroicons/react/24/solid";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   createInventoryCategory,
   deleteInventoryCategory,
@@ -125,7 +125,10 @@ function ActionDropdown({ onEdit, onDelete, canEdit, canDelete }) {
 
 const CategoryList = () => {
   const { can } = usePermissions();
-  const [allCategories, setAllCategories] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [totalPage, setTotalPage] = useState(1);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const refresh = () => setRefreshKey((k) => k + 1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [page, setPage] = useState(1);
@@ -153,38 +156,36 @@ const CategoryList = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const fetchData = useCallback(
-    async (currentSearch) => {
+    async (currentSearch, goToPage) => {
       setLoading(true);
       setError("");
       try {
-        const params = { pageLimit: -1 };
+        const params = { pageLimit: PAGE_LIMIT, pageNumber: goToPage };
         if (currentSearch) {
           params.search = currentSearch;
         }
         const res = await getInventoryCategories(params);
-        const categoriesData = Array.isArray(res.data.data.listData)
-          ? res.data.data.listData
-          : [];
-        categoriesData.sort((a, b) => a.icId - b.icId);
-        setAllCategories(categoriesData);
+        const pageLast = Math.max(1, res?.data?.data?.pagination?.pageLast || 1);
+
+        if (goToPage > pageLast) {
+          setPage(pageLast);
+          return;
+        }
+
+        setCategories(Array.isArray(res.data.data.listData) ? res.data.data.listData : []);
+        setTotalPage(pageLast);
       } catch {
         setError("Gagal memuat data kategori");
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     },
     [],
   );
 
-  // Client-side pagination
-  const totalPage = useMemo(() => Math.max(1, Math.ceil(allCategories.length / PAGE_LIMIT)), [allCategories]);
-  const categories = useMemo(() => {
-    const start = (page - 1) * PAGE_LIMIT;
-    return allCategories.slice(start, start + PAGE_LIMIT);
-  }, [allCategories, page]);
-
   useEffect(() => {
-    fetchData(search);
-  }, [search, fetchData]);
+    fetchData(search, page);
+  }, [search, page, refreshKey, fetchData]);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -205,10 +206,10 @@ const CategoryList = () => {
       setNewCategoryName("");
       setNewCategoryType(1); // Reset to default
 
-      // Reset search and re-fetch
       setSearch("");
       setSearchInput("");
-      fetchData("");
+      setPage(1);
+      refresh();
     } catch (err) {
       setFormError(err.response?.data?.remark || "Gagal menambah kategori");
     }
@@ -234,7 +235,7 @@ const CategoryList = () => {
         icType: editedCategoryType,
       });
       setShowEditModal(false);
-      fetchData(search);
+      refresh();
     } catch (err) {
       setFormError(err.response?.data?.remark || "Gagal mengubah kategori");
     }
@@ -252,16 +253,7 @@ const CategoryList = () => {
     try {
       await deleteInventoryCategory(deletingCategory.icId);
       setShowDeleteModal(false);
-
-      // Cek apakah halaman saat ini akan kosong setelah delete
-      const currentPageData = categories.filter(
-        (cat) => cat.icId !== deletingCategory.icId,
-      );
-      if (currentPageData.length === 0 && page > 1) {
-        setPage(page - 1);
-      }
-
-      fetchData(search);
+      refresh();
     } catch (err) {
       console.error("Failed to delete category", err);
     }

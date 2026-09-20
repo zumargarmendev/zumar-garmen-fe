@@ -1,6 +1,7 @@
 import api from '../axios';
+import { SORT } from '../../utils/listSorting';
 
-export const getInventorySubCategories = ({ pageLimit, pageNumber, search = '', orderBy = '', ordering = '', icId, filterIcId }) => {
+export const getInventorySubCategories = ({ pageLimit, pageNumber, search = '', orderBy = SORT.inventorySubCategory.orderBy, ordering = SORT.inventorySubCategory.ordering, icId, filterIcId }) => {
   const params = {};
 
   if (pageLimit !== undefined && pageLimit !== null && pageLimit !== null) {

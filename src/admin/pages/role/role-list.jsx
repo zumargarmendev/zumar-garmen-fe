@@ -83,6 +83,8 @@ const RoleList = () => {
   const [search, setSearch] = useState('');
   const [searchInput, setSearchInput] = useState('');
   const [searchExpanded, setSearchExpanded] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const refresh = () => setRefreshKey((k) => k + 1);
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -93,33 +95,37 @@ const RoleList = () => {
 
   const navigate = useNavigate();
 
-  const fetchData = useCallback(async (goToPage) => {
+  const fetchData = useCallback(async (currentSearch, goToPage) => {
     setLoading(true);
     setError('');
     try {
       const params = { pageLimit: PAGE_LIMIT, pageNumber: goToPage };
 
-      if (search) {
-        params.search = search;
+      if (currentSearch) {
+        params.search = currentSearch;
       }
 
       const res = await getAllRoles(params);
-      let rolesData = Array.isArray(res.data.data.listData) ? res.data.data.listData : [];
-
-      setRoles(rolesData);
       const pagination = res.data.pagination || res.data.data?.pagination || {};
-      const pageLast = pagination.pageLast || 1;
-      setTotalPage(Math.max(1, pageLast));
-      setPage(goToPage);
+      const pageLast = Math.max(1, pagination.pageLast || 1);
+
+      if (goToPage > pageLast) {
+        setPage(pageLast);
+        return;
+      }
+
+      setRoles(Array.isArray(res.data.data.listData) ? res.data.data.listData : []);
+      setTotalPage(pageLast);
     } catch {
       setError('Gagal memuat data role');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
-  }, [search]);
+  }, []);
 
   useEffect(() => {
-    fetchData(1);
-  }, [fetchData]);
+    fetchData(search, page);
+  }, [search, page, refreshKey, fetchData]);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -156,12 +162,7 @@ const RoleList = () => {
       await deleteRole(deletingRole.rId);
       setShowDeleteModal(false);
       setDeletingRole(null);
-      const currentPageData = roles.filter(r => r.rId !== deletingRole.rId);
-      if (currentPageData.length === 0 && page > 1) {
-        setPage(page - 1);
-      } else {
-        fetchData(page);
-      }
+      refresh();
     } catch {
       setFormError('Gagal menghapus role');
     }

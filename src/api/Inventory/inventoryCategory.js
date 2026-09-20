@@ -1,6 +1,7 @@
 import api from '../axios';
+import { SORT } from '../../utils/listSorting';
 
-export const getInventoryCategories = ({ pageLimit, pageNumber, search = '', orderBy = '', ordering = '' }) => {
+export const getInventoryCategories = ({ pageLimit, pageNumber, search = '', orderBy = SORT.inventoryCategory.orderBy, ordering = SORT.inventoryCategory.ordering }) => {
   const params = {};
   
   // Only add pageLimit and pageNumber if they are provided, valid, and not -1

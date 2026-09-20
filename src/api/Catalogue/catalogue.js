@@ -1,7 +1,8 @@
 import api from '../axios';
+import { SORT } from '../../utils/listSorting';
 
 export const getCatalogueProducts = (params) => {
-  return api.get('/api/catalogue-product', { params });
+  return api.get('/api/catalogue-product', { params: { ...SORT.catalogueProduct, ...params } });
 };
 
 export const createCatalogueProduct = (data) => {
@@ -23,7 +24,7 @@ export const getCatalogueProductById = (cpId) => {
 
 // Fungsi untuk mendapatkan semua produk (tanpa pagination)
 export const getAllCatalogueProducts = () => {
-  return api.get('/api/catalogue-product', { params: { pageLimit: 1000, pageNumber: 1 } });
+  return api.get('/api/catalogue-product', { params: { ...SORT.catalogueProduct, pageLimit: 1000, pageNumber: 1 } });
 };
 
 // Fungsi khusus untuk upload image

@@ -132,9 +132,7 @@ const InventoryRelocationReport = () => {
       }
 
       const res = await getInventoryRelocations(params);
-      const data = Array.isArray(res.data.data.listData) ? res.data.data.listData : [];
-      data.sort((a, b) => new Date(a.irCreatedAt) - new Date(b.irCreatedAt));
-      setAllRelocations(data);
+      setAllRelocations(Array.isArray(res.data.data.listData) ? res.data.data.listData : []);
     } catch (err) {
       console.error('Error fetching relocations:', err);
       setError('Gagal memuat data transfer inventory');

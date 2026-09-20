@@ -1,7 +1,8 @@
 import api from '../axios';
+import { SORT } from '../../utils/listSorting';
 
 export const getCatalogueSubCategories = (params) => {
-  return api.get('/api/catalogue-subcategory/', { params });
+  return api.get('/api/catalogue-subcategory/', { params: { ...SORT.catalogueSubCategory, ...params } });
 };
 
 export const createCatalogueSubCategory = (data) => {

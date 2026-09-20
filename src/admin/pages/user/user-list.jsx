@@ -275,6 +275,8 @@ export default function UserList() {
   const [selectedRole, setSelectedRole] = useState("");
   const [page, setPage] = useState(1);
   const [totalPage, setTotalPage] = useState(1);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const refresh = () => setRefreshKey((k) => k + 1);
   const navigate = useNavigate();
 
   const [showEditModal, setShowEditModal] = useState(false);
@@ -312,7 +314,7 @@ export default function UserList() {
     }
     try {
       setFormLoading(true);
-      const response = await createUser({
+      await createUser({
         uName: newUser.uName,
         uEmail: newUser.uEmail,
         uPhone: newUser.uPhone,
@@ -321,9 +323,8 @@ export default function UserList() {
         rId: newUser.rId,
       });
 
-      await fetchData();
-
-      console.log("User berhasil ditambahkan:", response.data);
+      setPage(1);
+      refresh();
 
       setShowAddModal(false);
       setNewUser({ uName: "", uEmail: "", uPhone: "", uAddress: "", uPassword: "", rId: "" });
@@ -366,7 +367,7 @@ export default function UserList() {
         rId: editUser.rId,
       });
 
-      await fetchData();
+      refresh();
 
       setShowEditModal(false);
       alert("Data user berhasil diperbarui!");
@@ -384,20 +385,26 @@ export default function UserList() {
     }
   };
 
-  const fetchData = async () => {
+  const fetchData = async (goToPage = page) => {
     try {
       setLoading(true);
       setError(null);
 
       const response = await getUserList({
         pageLimit: 10,
-        pageNumber: page,
+        pageNumber: goToPage,
         filterRId: selectedRole || null,
       });
 
-      const data = response.data.data.listData;
-      setUsers(data || []);
-      setTotalPage(response.data.data.pagination?.pageLast || 1);
+      const pageLast = Math.max(1, response.data.data.pagination?.pageLast || 1);
+
+      if (goToPage > pageLast) {
+        setPage(pageLast);
+        return;
+      }
+
+      setUsers(response.data.data.listData || []);
+      setTotalPage(pageLast);
     } catch (error) {
       console.error("Error fetching data:", error);
       setError("Gagal memuat data. Silakan coba lagi.");
@@ -413,7 +420,7 @@ export default function UserList() {
       setLoading(true);
       setError(null);
       await deleteUser(uId);
-      await fetchData();
+      refresh();
     } catch (error) {
       console.error("Error deleting User:", error);
       setError("Gagal menghapus User. Silakan coba lagi.");
@@ -447,8 +454,6 @@ export default function UserList() {
       setShowActionModal(false);
       setSelectedUser(null);
       setModalAction(null);
-
-      await fetchData();
     } catch (err) {
       console.error("Error performing action:", err);
       setActionError(err.message || "Failed to perform action");
@@ -488,8 +493,8 @@ export default function UserList() {
   }, []);
 
   useEffect(() => {
-    fetchData();
-  }, [page, selectedRole]);
+    fetchData(page);
+  }, [page, selectedRole, refreshKey]);
 
   return (
     <div

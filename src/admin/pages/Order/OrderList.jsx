@@ -352,40 +352,58 @@ const OrderList = () => {
 
   const handleUpdatePriceDataChange = handleFormChange(setUpdatePriceData);
 
+  const isPaymentFilterActive = filters.payment !== null;
+
   const fetchData = useCallback(
     async (goToPage) => {
       setLoading(true);
       setError("");
       try {
-        // Hanya gunakan filter approval dan search
         const params = {
-          pageLimit: PAGE_LIMIT,
-          pageNumber: goToPage,
           ...(search && { search }),
           ...(filters.approval !== null && {
             filterOApprovalStatus: filters.approval,
           }),
+          ...(isPaymentFilterActive
+            ? { pageLimit: -1, pageNumber: 1 }
+            : { pageLimit: PAGE_LIMIT, pageNumber: goToPage }),
         };
 
         const res = await getOrders(params);
+        const listData = res?.data?.data?.listData;
 
-        if (res?.data?.data?.listData) {
-          let filteredData = res.data.data.listData;
-
-          // Filter payment status di frontend
-          if (filters.payment !== null) {
-            filteredData = filteredData.filter(
-              (order) => order.oStatusPayment === filters.payment,
-            );
-          }
-
-          setOrders(filteredData);
-          // Gunakan pageLast dari response API
-          setTotalPage(res.data.data.pagination?.pageLast || 1);
-        } else {
+        if (!Array.isArray(listData)) {
           setOrders([]);
           setTotalPage(1);
+          return;
         }
+
+        if (isPaymentFilterActive) {
+          const filtered = listData.filter(
+            (order) => order.oStatusPayment === filters.payment,
+          );
+          const pageLast = Math.max(1, Math.ceil(filtered.length / PAGE_LIMIT));
+
+          if (goToPage > pageLast) {
+            setPage(pageLast);
+            return;
+          }
+
+          const start = (goToPage - 1) * PAGE_LIMIT;
+          setOrders(filtered.slice(start, start + PAGE_LIMIT));
+          setTotalPage(pageLast);
+          return;
+        }
+
+        const pageLast = Math.max(1, res.data.data.pagination?.pageLast || 1);
+
+        if (goToPage > pageLast) {
+          setPage(pageLast);
+          return;
+        }
+
+        setOrders(listData);
+        setTotalPage(pageLast);
       } catch (err) {
         console.error("Error fetching orders:", err);
         setError(err.message || "Failed to fetch orders");
@@ -395,7 +413,7 @@ const OrderList = () => {
         setLoading(false);
       }
     },
-    [search, filters],
+    [search, filters, isPaymentFilterActive],
   );
 
   useEffect(() => {

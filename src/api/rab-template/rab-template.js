@@ -1,4 +1,5 @@
 import api from "../axios";
+import { SORT } from '../../utils/listSorting';
 
 const OPERATIONAL_UTILITY_TEMPLATE_ENDPOINT = '/api/operational-utility';
 
@@ -6,12 +7,14 @@ export const getOperationalUtilityTemplateList = ({
   pageLimit,
   pageNumber,
   search,
-  orderBy,
-  ordering,
+  orderBy = SORT.rabTemplate.orderBy,
+  ordering = SORT.rabTemplate.ordering,
 } = {
   pageLimit: 1,
   pageNumber: 1,
   search: "",
+  orderBy: SORT.rabTemplate.orderBy,
+  ordering: SORT.rabTemplate.ordering,
 }) => {
   return api.get(OPERATIONAL_UTILITY_TEMPLATE_ENDPOINT, {
     params: {

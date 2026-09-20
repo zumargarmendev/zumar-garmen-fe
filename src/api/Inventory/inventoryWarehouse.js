@@ -1,6 +1,7 @@
 import api from '../axios';
+import { SORT } from '../../utils/listSorting';
 
-export const getWarehouses = ({ pageLimit, pageNumber, search = '', orderBy = '', ordering = '' }) => {
+export const getWarehouses = ({ pageLimit, pageNumber, search = '', orderBy = SORT.warehouse.orderBy, ordering = SORT.warehouse.ordering }) => {
   const params = {};
 
   if (pageLimit !== undefined && pageLimit !== null && pageLimit !== null) {

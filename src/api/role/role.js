@@ -1,7 +1,8 @@
 import api from '../axios';
+import { SORT } from '../../utils/listSorting';
 
 export const getAllRoles = (params) => {
-    return api.get('/api/role', { params });
+    return api.get('/api/role', { params: { ...SORT.role, ...params } });
 };
 
 export const getRoleDetail = (rId) => {

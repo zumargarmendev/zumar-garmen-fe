@@ -1,7 +1,7 @@
 import AdminSidebar from '../../components/AdminSidebar';
 import AdminNavbar from '../../components/AdminNavbar';
 import Pagination from '../../components/Pagination';
-import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react';
+import React, { useCallback, useEffect, useState, useRef } from 'react';
 import { MagnifyingGlassIcon, PlusIcon, XCircleIcon, ChevronDownIcon } from '@heroicons/react/24/solid';
 import { getWarehouses, createWarehouse, updateWarehouse, deleteWarehouse } from '../../../api/Inventory/inventoryWarehouse';
 import { usePermissions } from '../../../utils/usePermission';
@@ -102,7 +102,10 @@ function ActionDropdown({ onEdit, onDelete, canEdit, canDelete }) {
 
 const WarehouseList = () => {
   const { can } = usePermissions();
-  const [allWarehouses, setAllWarehouses] = useState([]);
+  const [warehouses, setWarehouses] = useState([]);
+  const [totalPage, setTotalPage] = useState(1);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const refresh = () => setRefreshKey((k) => k + 1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [page, setPage] = useState(1);
@@ -133,34 +136,34 @@ const WarehouseList = () => {
   // State for search expansion
   const [searchExpanded, setSearchExpanded] = useState(false);
 
-  const fetchData = useCallback(async (currentSearch) => {
+  const fetchData = useCallback(async (currentSearch, goToPage) => {
     setLoading(true);
     setError('');
     try {
-      const params = { pageLimit: -1 };
+      const params = { pageLimit: PAGE_LIMIT, pageNumber: goToPage };
       if (currentSearch) {
         params.search = currentSearch;
       }
       const res = await getWarehouses(params);
-      const data = Array.isArray(res?.data?.data?.listData) ? res.data.data.listData : [];
-      data.sort((a, b) => a.iwId - b.iwId);
-      setAllWarehouses(data);
+      const pageLast = Math.max(1, res?.data?.data?.pagination?.pageLast || 1);
+
+      if (goToPage > pageLast) {
+        setPage(pageLast);
+        return;
+      }
+
+      setWarehouses(Array.isArray(res?.data?.data?.listData) ? res.data.data.listData : []);
+      setTotalPage(pageLast);
     } catch {
       setError('Gagal memuat data warehouse');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, []);
 
-  // Client-side pagination
-  const totalPage = useMemo(() => Math.max(1, Math.ceil(allWarehouses.length / PAGE_LIMIT)), [allWarehouses]);
-  const warehouses = useMemo(() => {
-    const start = (page - 1) * PAGE_LIMIT;
-    return allWarehouses.slice(start, start + PAGE_LIMIT);
-  }, [allWarehouses, page]);
-
   useEffect(() => {
-    fetchData(search);
-  }, [search, fetchData]);
+    fetchData(search, page);
+  }, [search, page, refreshKey, fetchData]);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -176,7 +179,8 @@ const WarehouseList = () => {
       await createWarehouse({ iwName: newName });
       setShowAddModal(false);
       setNewName('');
-      fetchData(search);
+      setPage(1);
+      refresh();
     } catch (err) {
       const errorMessage = err.response?.data?.remark || 'Gagal menambah warehouse';
       setFormError(errorMessage);
@@ -200,7 +204,7 @@ const WarehouseList = () => {
       await updateWarehouse(editingWarehouse.iwId, { iwName: editedName });
       setShowEditModal(false);
       setEditingWarehouse(null);
-      fetchData(search);
+      refresh();
     } catch (err) {
       const errorMessage = err.response?.data?.remark || 'Gagal mengubah warehouse';
       setFormError(errorMessage);
@@ -220,14 +224,7 @@ const WarehouseList = () => {
       await deleteWarehouse(deletingWarehouse.iwId);
       setShowDeleteModal(false);
       setDeletingWarehouse(null);
-
-      // Cek apakah halaman saat ini akan kosong setelah delete
-      const currentPageData = warehouses.filter(wh => wh.iwId !== deletingWarehouse.iwId);
-      if (currentPageData.length === 0 && page > 1) {
-        setPage(page - 1);
-      }
-
-      fetchData(search);
+      refresh();
     } catch (err) {
       // Tambahkan log error detail dari backend
       console.error("Failed to delete warehouse", err, err.response?.data);
