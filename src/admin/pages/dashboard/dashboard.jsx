@@ -80,13 +80,13 @@ const Dashboard = () => {
                 </button>
               </div>
               <OrderAndFinancialStatus
-                filterDateEnd={dateRange.endDate}
+                filterDateFinish={dateRange.endDate}
                 filterDateStart={dateRange.startDate}
                 onDataLoaded={setDashboardData}
                 onCategoryDataLoaded={setCategoryData}
               />
               <TopMostOrderedClients
-                filterDateEnd={dateRange.endDate}
+                filterDateFinish={dateRange.endDate}
                 filterDateStart={dateRange.startDate}
               />
             </div>

@@ -603,6 +603,7 @@ export const generateInventoryRelocationReport = (relocationData, filterInfo, wa
   const tableData = relocationData.map(rel => [
     formatTanggal(rel.irCreatedAt),
     formatTanggalKeputusan(rel),
+    rel.isName || '-',
     rel.iCode || '-',
     rel.iwNameFrom || getWarehouseName(rel.iwIdFrom) || '-',
     rel.iwNameTo || getWarehouseName(rel.iwIdTo) || '-',
@@ -614,7 +615,7 @@ export const generateInventoryRelocationReport = (relocationData, filterInfo, wa
   // Generate table
   autoTable(doc, {
     startY: yPos,
-    head: [['Tgl Dibuat', 'Tgl Keputusan', 'Kode Item', 'Gudang Asal', 'Gudang Tujuan', 'Jumlah', 'Satuan', 'Status']],
+    head: [['Tgl Dibuat', 'Tgl Keputusan', 'Barang', 'Kode Item', 'Gudang Asal', 'Gudang Tujuan', 'Jumlah', 'Satuan', 'Status']],
     body: tableData,
     theme: 'grid',
     headStyles: {
@@ -630,14 +631,15 @@ export const generateInventoryRelocationReport = (relocationData, filterInfo, wa
       fillColor: [178, 223, 219]
     },
     columnStyles: {
-      0: { cellWidth: 25 }, // Tgl Dibuat
-      1: { cellWidth: 45 }, // Tgl Keputusan
-      2: { cellWidth: 30 }, // Kode Item
-      3: { cellWidth: 38 }, // Gudang Asal
-      4: { cellWidth: 38 }, // Gudang Tujuan
-      5: { cellWidth: 18 }, // Jumlah
-      6: { cellWidth: 18 }, // Satuan
-      7: { cellWidth: 22 }  // Status
+      0: { cellWidth: 25 },
+      1: { cellWidth: 38 },
+      2: { cellWidth: 43 },
+      3: { cellWidth: 27 },
+      4: { cellWidth: 33 },
+      5: { cellWidth: 33 },
+      6: { cellWidth: 18 },
+      7: { cellWidth: 18 },
+      8: { cellWidth: 20 }
     },
     margin: { left: 20, right: 20 }
   });
@@ -750,7 +752,7 @@ export const generateCatalogueReport = async (catalogueData, filterInfo, categor
       if (base64) imageMap.set(rowIndex, base64);
     });
 
-    return imageMap;
+    return { imageMap, totalGambar: uniqueUrls.length, gambarGagal: loaded.filter((b) => !b).length };
   };
 
   const getCategoryName = (ccId) => {
@@ -776,7 +778,7 @@ export const generateCatalogueReport = async (catalogueData, filterInfo, categor
     return cleanText.substring(0, maxLength) + "...";
   };
   
-  const imageMap = await loadCatalogueImages(catalogueData);
+  const { imageMap, totalGambar, gambarGagal } = await loadCatalogueImages(catalogueData);
 
 
   // Prepare table data
@@ -857,6 +859,8 @@ export const generateCatalogueReport = async (catalogueData, filterInfo, categor
   
   const fileName = `Laporan_Katalog_${format(new Date(), 'yyyy-MM-dd_HH-mm')}.pdf`;
   doc.save(fileName);
+
+  return { totalGambar, gambarGagal };
 };
 
 

@@ -14,19 +14,19 @@ const formatRupiah = (amount) => {
   }).format(amount);
 };
 
-export function TopMostOrderedClients({ filterDateStart, filterDateEnd }) {
+export function TopMostOrderedClients({ filterDateStart, filterDateFinish }) {
   const [isLoading, setIsLoading] = React.useState(false);
   const [error, setError] = React.useState(null);
   const [data, setData] = React.useState(null);
 
-  const fetchData = async ({ filterDateStart, filterDateEnd }) => {
+  const fetchData = async ({ filterDateStart, filterDateFinish }) => {
     try {
       setIsLoading(true);
       setError(null);
 
       const response = await getDashboardRankUserPurchaseData({
           filterDateStart,
-          filterDateEnd,
+          filterDateFinish,
         });
 
       setData(response.data.data);
@@ -41,9 +41,9 @@ export function TopMostOrderedClients({ filterDateStart, filterDateEnd }) {
   React.useEffect(() => {
       fetchData({
         filterDateStart,
-        filterDateEnd,
+        filterDateFinish,
       });
-    }, [filterDateStart, filterDateEnd]);
+    }, [filterDateStart, filterDateFinish]);
 
   if (isLoading) {
     return <div>Memuat data...</div>;

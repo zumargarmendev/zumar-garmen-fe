@@ -20,7 +20,10 @@ const getOrderDetails = (data) => {
 
 const getRevenueDetails = (data) => {
   return [
-    { label: "Total Sudah Dibayar", value: data?.orderPaidTotal || 0 },
+    {
+      label: "Total Sudah Dibayar",
+      value: (data?.orderDownPaymentTotal || 0) + (data?.orderPaidTotal || 0),
+    },
     { label: "Total HPP (COGS)", value: data?.orderCogsTotal || 0 },
     { label: "Total Margin", value: data?.orderMarginTotal || 0 },
     { label: "Total Sisa Untung", value: data?.orderProfitRemainingTotalDonePayment || 0 },
@@ -38,14 +41,14 @@ const getProfitDetails = (data) => {
   ];
 };
 
-export function OrderAndFinancialStatus({ filterDateStart, filterDateEnd, onDataLoaded, onCategoryDataLoaded }) {
+export function OrderAndFinancialStatus({ filterDateStart, filterDateFinish, onDataLoaded, onCategoryDataLoaded }) {
   const [dashboardAutoData, setDashboardAutoData] = React.useState(null);
   const [catalogueCategoryResume, setCatalogueCategoryResume] =
     React.useState(null);
   const [isLoading, setIsLoading] = React.useState(false);
   const [error, setError] = React.useState(null);
 
-  const fetchData = async ({ filterDateStart, filterDateEnd }) => {
+  const fetchData = async ({ filterDateStart, filterDateFinish }) => {
     try {
       setIsLoading(true);
       setError(null);
@@ -53,11 +56,11 @@ export function OrderAndFinancialStatus({ filterDateStart, filterDateEnd, onData
       const [dashboardResponse, catalogueCategoryResume] = await Promise.all([
         getDashboardDataAuto({
           filterDateStart,
-          filterDateEnd,
+          filterDateFinish,
         }),
         getCatalogueCategoryResume({
           filterDateStart,
-          filterDateEnd,
+          filterDateFinish,
         }),
       ]);
 
@@ -81,9 +84,9 @@ export function OrderAndFinancialStatus({ filterDateStart, filterDateEnd, onData
   React.useEffect(() => {
     fetchData({
       filterDateStart,
-      filterDateEnd,
+      filterDateFinish,
     });
-  }, [filterDateStart, filterDateEnd]);
+  }, [filterDateStart, filterDateFinish]);
 
   if (isLoading) {
     return <div>Memuat data...</div>;
@@ -117,7 +120,7 @@ export function OrderAndFinancialStatus({ filterDateStart, filterDateEnd, onData
       />
 
       <SummaryCard
-        title="Total Pemasukan"
+        title="Total Nilai Order"
         value={formatCurrency(dashboardAutoData?.orderPriceTotal || 0)}
         icon={Wallet}
         details={getRevenueDetails(dashboardAutoData)}

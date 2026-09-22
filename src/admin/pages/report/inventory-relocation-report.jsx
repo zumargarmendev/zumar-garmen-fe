@@ -330,6 +330,7 @@ const InventoryRelocationReport = () => {
                   <tr className="text-primaryColor">
                     <th className="px-4 py-3">Tanggal Dibuat</th>
                     <th className="px-4 py-3">Tanggal Keputusan</th>
+                    <th className="px-4 py-3">Barang</th>
                     <th className="px-4 py-3">Kode Item</th>
                     <th className="px-4 py-3">Gudang Asal</th>
                     <th className="px-4 py-3">Gudang Tujuan</th>
@@ -341,13 +342,14 @@ const InventoryRelocationReport = () => {
                 <tbody>
                   {relocations.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="text-center py-6 text-gray-400">Tidak ada data transfer inventory</td>
+                      <td colSpan={9} className="text-center py-6 text-gray-400">Tidak ada data transfer inventory</td>
                     </tr>
                   ) : (
                     relocations.map((rel) => (
                       <tr key={rel.irId} className="bg-gray-100 hover:bg-secondaryColor/10 rounded-lg shadow-sm">
                         <td className="px-4 py-3">{formatTanggal(rel.irCreatedAt)}</td>
                         <td className="px-4 py-3">{formatTanggalKeputusan(rel)}</td>
+                        <td className="px-4 py-3">{rel.isName || '-'}</td>
                         <td className="px-4 py-3 font-medium">{rel.iCode}</td>
                         <td className="px-4 py-3">{rel.iwNameFrom || '-'}</td>
                         <td className="px-4 py-3">{rel.iwNameTo || '-'}</td>

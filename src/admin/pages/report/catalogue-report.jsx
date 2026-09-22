@@ -262,13 +262,20 @@ const CatalogueReport = () => {
       setIsGeneratingPdf(true);
       setPdfProgress(null);
 
-      await generateCatalogueReport(
+      const hasil = await generateCatalogueReport(
         allProducts,
         filterInfo,
         categories,
         subCategories,
         (done, total) => setPdfProgress({ done, total })
       );
+
+      if (hasil?.gambarGagal > 0) {
+        alert(
+          `PDF berhasil dibuat, tetapi ${hasil.gambarGagal} dari ${hasil.totalGambar} gambar gagal dimuat ` +
+          `sehingga tidak tampil di PDF. Coba ulangi — bila masih gagal, kemungkinan ukuran file gambarnya terlalu besar.`
+        );
+      }
     } catch (error) {
       console.error('Error generating PDF:', error);
       alert('Gagal generate PDF. Silakan coba lagi.');
