@@ -352,21 +352,21 @@ const OrderList = () => {
 
   const handleUpdatePriceDataChange = handleFormChange(setUpdatePriceData);
 
-  const isPaymentFilterActive = filters.payment !== null;
-
   const fetchData = useCallback(
     async (goToPage) => {
       setLoading(true);
       setError("");
       try {
         const params = {
+          pageLimit: PAGE_LIMIT,
+          pageNumber: goToPage,
           ...(search && { search }),
           ...(filters.approval !== null && {
             filterOApprovalStatus: filters.approval,
           }),
-          ...(isPaymentFilterActive
-            ? { pageLimit: -1, pageNumber: 1 }
-            : { pageLimit: PAGE_LIMIT, pageNumber: goToPage }),
+          ...(filters.payment !== null && {
+            filterOStatusPayment: filters.payment,
+          }),
         };
 
         const res = await getOrders(params);
@@ -375,23 +375,6 @@ const OrderList = () => {
         if (!Array.isArray(listData)) {
           setOrders([]);
           setTotalPage(1);
-          return;
-        }
-
-        if (isPaymentFilterActive) {
-          const filtered = listData.filter(
-            (order) => order.oStatusPayment === filters.payment,
-          );
-          const pageLast = Math.max(1, Math.ceil(filtered.length / PAGE_LIMIT));
-
-          if (goToPage > pageLast) {
-            setPage(pageLast);
-            return;
-          }
-
-          const start = (goToPage - 1) * PAGE_LIMIT;
-          setOrders(filtered.slice(start, start + PAGE_LIMIT));
-          setTotalPage(pageLast);
           return;
         }
 
@@ -413,7 +396,7 @@ const OrderList = () => {
         setLoading(false);
       }
     },
-    [search, filters, isPaymentFilterActive],
+    [search, filters],
   );
 
   useEffect(() => {

@@ -12,7 +12,8 @@ const getOrderDetails = (data) => {
   return [
     { label: "Menunggu Konfirmasi", value: data?.orderPendingTotal || 0 },
     { label: "Dibuat", value: data?.orderProgressTotal || 0 },
-    { label: "Ditolak", value: (data?.orderTotal || 0) - (data?.orderPendingTotal || 0) - (data?.orderProgressTotal || 0) },
+    { label: "Selesai", value: data?.orderFinishTotal || 0 },
+    { label: "Ditolak", value: data?.orderRejectedTotal || 0 },
     { label: "Belum Lunas", value: data?.orderNotFullyPaidTotal || 0 },
     { label: "Lunas", value: data?.orderFullyPaidTotal || 0 },
   ];
@@ -34,10 +35,10 @@ const getRevenueDetails = (data) => {
 
 const getProfitDetails = (data) => {
   return [
-    { label: "Maintenance - Develop", value: data?.orderMainDevelopTotal || 0 },
-    { label: "Bonus Insentif", value: data?.orderIncentiveTotal || 0 },
-    { label: "Pendapatan Marketing", value: data?.orderMarketingTotal || 0 },
-    { label: "Sisa Untung Bersih", value: data?.orderProfitNetTotal || 0 },
+    { label: "Maintenance - Develop", value: data?.orderMainDevelopTotalDoneProgress || 0 },
+    { label: "Bonus Insentif", value: data?.orderIncentiveTotalDoneProgress || 0 },
+    { label: "Pendapatan Marketing", value: data?.orderMarketingTotalDoneProgress || 0 },
+    { label: "Sisa Untung Bersih", value: data?.orderProfitNetTotalDoneProgress || 0 },
   ];
 };
 

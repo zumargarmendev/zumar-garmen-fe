@@ -45,58 +45,19 @@ const blobToBase64 = (blob) =>
     reader.readAsDataURL(blob);
   });
 
-const fetchImageViaProxy = async (imageUrl) => {
-  const size = CONFIG.CANVAS_SIZE;
-  const proxyUrl = `https://images.weserv.nl/?url=${encodeURIComponent(imageUrl)}&output=png&w=${size}&h=${size}&fit=cover&q=100`;
-  const response = await fetch(proxyUrl, {
-    signal: AbortSignal.timeout(CONFIG.IMAGE_TIMEOUT)
-  });
-  if (!response.ok) throw new Error(`WeServ HTTP ${response.status}`);
-  return blobToBase64(await response.blob());
-};
-
-const fetchImageAndDownscale = (imageUrl) =>
-  new Promise((resolve, reject) => {
-    const size = CONFIG.CANVAS_SIZE;
-    const img = new Image();
-    const timer = setTimeout(
-      () => reject(new Error('Timeout memuat gambar langsung')),
-      CONFIG.IMAGE_TIMEOUT
-    );
-
-    img.crossOrigin = 'anonymous';
-    img.onload = () => {
-      clearTimeout(timer);
-      try {
-        const canvas = document.createElement('canvas');
-        canvas.width = size;
-        canvas.height = size;
-        const side = Math.min(img.naturalWidth, img.naturalHeight);
-        const sx = (img.naturalWidth - side) / 2;
-        const sy = (img.naturalHeight - side) / 2;
-        canvas.getContext('2d').drawImage(img, sx, sy, side, side, 0, 0, size, size);
-        resolve(canvas.toDataURL('image/png'));
-      } catch (err) {
-        reject(err);
-      }
-    };
-    img.onerror = () => {
-      clearTimeout(timer);
-      reject(new Error('Gagal memuat gambar langsung'));
-    };
-    img.src = imageUrl;
-  });
+const toThumbUrl = (imageUrl) => imageUrl.replace(/\.[^./]+$/, '_thumb.jpg');
 
 const loadReportImage = async (imageUrl) => {
-  try {
-    return await fetchImageViaProxy(imageUrl);
-  } catch {
+  for (const url of [toThumbUrl(imageUrl), imageUrl]) {
     try {
-      return await fetchImageAndDownscale(imageUrl);
+      const response = await fetch(url, { signal: AbortSignal.timeout(CONFIG.IMAGE_TIMEOUT) });
+      if (!response.ok) continue;
+      return await blobToBase64(await response.blob());
     } catch {
-      return null;
+      continue;
     }
   }
+  return null;
 };
 
 const runWithConcurrency = async (items, limit, worker) => {
