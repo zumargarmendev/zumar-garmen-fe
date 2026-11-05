@@ -22,14 +22,24 @@ const getOrderDetails = (data) => {
 const getRevenueDetails = (data) => {
   return [
     {
-      label: "Total Sudah Dibayar",
-      value: (data?.orderDownPaymentTotal || 0) + (data?.orderPaidTotal || 0),
+      label: "Total Uang Diterima",
+      value:
+        (data?.orderDownPaymentTotalActive || 0) +
+        (data?.orderPaidTotalActive || 0),
     },
-    { label: "Total HPP (COGS)", value: data?.orderCogsTotal || 0 },
-    { label: "Total Margin", value: data?.orderMarginTotal || 0 },
-    { label: "Total Sisa Untung", value: data?.orderProfitRemainingTotalDonePayment || 0 },
-    { label: "Total Piutang", value: data?.orderReceivablesTotal || 0 },
-    { label: "Total DP", value: data?.orderDownPaymentTotal || 0 },
+    {
+      label: "— di antaranya DP",
+      value: data?.orderDownPaymentTotalActive || 0,
+    },
+    {
+      label: "Uang Diterima dari Order Selesai",
+      value:
+        (data?.orderDownPaymentTotalDoneProgress || 0) +
+        (data?.orderPaidTotalDoneProgress || 0),
+    },
+    { label: "Total Piutang", value: data?.orderReceivablesTotalActive || 0 },
+    { label: "Total HPP (COGS)", value: data?.orderCogsTotalActive || 0 },
+    { label: "Total Margin", value: data?.orderMarginTotalActive || 0 },
   ];
 };
 
@@ -122,7 +132,7 @@ export function OrderAndFinancialStatus({ filterDateStart, filterDateFinish, onD
 
       <SummaryCard
         title="Total Nilai Order"
-        value={formatCurrency(dashboardAutoData?.orderPriceTotal || 0)}
+        value={formatCurrency(dashboardAutoData?.orderPriceTotalActive || 0)}
         icon={Wallet}
         details={getRevenueDetails(dashboardAutoData)}
         color="amber"

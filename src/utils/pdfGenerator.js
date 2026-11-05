@@ -272,19 +272,19 @@ export const generateDashboardReport = (dashboardData, categoryData, dateRange) 
   
   yPos = doc.lastAutoTable.finalY + 20;
   
-  // Table 2: Total Pemasukan
+  // Table 2: Total Nilai Order
   doc.setFontSize(14);
   doc.setFont('helvetica', 'bold');
-  doc.text(`Total Pemasukan: ${formatCurrency(dashboardData?.orderPriceTotal || 0)}`, 20, yPos);
+  doc.text(`Total Nilai Order: ${formatCurrency(dashboardData?.orderPriceTotalActive || 0)}`, 20, yPos);
   yPos += 10;
-  
+
   const revenueDetails = [
-    ['Total Sudah Dibayar', formatCurrency(dashboardData?.orderPaidTotal || 0)],
-    ['Total HPP (COGS)', formatCurrency(dashboardData?.orderCogsTotal || 0)],
-    ['Total Margin', formatCurrency(dashboardData?.orderMarginTotal || 0)],
-    ['Total Sisa Untung', formatCurrency(dashboardData?.orderProfitRemainingTotalDonePayment || 0)],
-    ['Total Piutang', formatCurrency(dashboardData?.orderReceivablesTotal || 0)],
-    ['Total DP', formatCurrency(dashboardData?.orderDownPaymentTotal || 0)],
+    ['Total Uang Diterima', formatCurrency((dashboardData?.orderDownPaymentTotalActive || 0) + (dashboardData?.orderPaidTotalActive || 0))],
+    ['— di antaranya DP', formatCurrency(dashboardData?.orderDownPaymentTotalActive || 0)],
+    ['Uang Diterima dari Order Selesai', formatCurrency((dashboardData?.orderDownPaymentTotalDoneProgress || 0) + (dashboardData?.orderPaidTotalDoneProgress || 0))],
+    ['Total Piutang', formatCurrency(dashboardData?.orderReceivablesTotalActive || 0)],
+    ['Total HPP (COGS)', formatCurrency(dashboardData?.orderCogsTotalActive || 0)],
+    ['Total Margin', formatCurrency(dashboardData?.orderMarginTotalActive || 0)],
   ];
   
   autoTable(doc, {
@@ -317,10 +317,10 @@ export const generateDashboardReport = (dashboardData, categoryData, dateRange) 
   yPos += 10;
   
   const profitDetails = [
-    ['Maintenance - Develop', formatCurrency(dashboardData?.orderMainDevelopTotal || 0)],
-    ['Bonus Insentif', formatCurrency(dashboardData?.orderIncentiveTotal || 0)],
-    ['Pendapatan Marketing', formatCurrency(dashboardData?.orderMarketingTotal || 0)],
-    ['Sisa Untung Bersih', formatCurrency(dashboardData?.orderProfitNetTotal || 0)],
+    ['Maintenance - Develop', formatCurrency(dashboardData?.orderMainDevelopTotalDoneProgress || 0)],
+    ['Bonus Insentif', formatCurrency(dashboardData?.orderIncentiveTotalDoneProgress || 0)],
+    ['Pendapatan Marketing', formatCurrency(dashboardData?.orderMarketingTotalDoneProgress || 0)],
+    ['Sisa Untung Bersih', formatCurrency(dashboardData?.orderProfitNetTotalDoneProgress || 0)],
   ];
   
   autoTable(doc, {

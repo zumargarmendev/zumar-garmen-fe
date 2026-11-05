@@ -60,7 +60,9 @@ export const calculateRABItemValues = (item) => {
   const marginPct = item.ocbpSettingMarginPercentage || 0;
   const priceOff = item.ocbpPriceOff || 0;
 
-  const totalHargaBahan = materialPrice * materialNeed;
+  const totalHargaBahan = Math.trunc(
+    Math.fround(materialPrice * Math.fround(materialNeed)),
+  );
 
   const jasaOperasional =
     item.ocbpOperationalServiceValue?.reduce(
@@ -82,7 +84,8 @@ export const calculateRABItemValues = (item) => {
 
   const hpp = totalHargaBahan + jasaOperasional + utilitiesDanBekakas;
 
-  const margin = hpp + (hpp * marginPct) / 100;
+  const marginRate = Math.fround(Math.fround(marginPct) / 100);
+  const margin = hpp + Math.trunc(Math.fround(hpp * marginRate));
   const nominalMargin = margin - hpp;
   const sisaUntung = priceOff - margin;
 
