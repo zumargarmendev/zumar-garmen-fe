@@ -38,6 +38,14 @@ const getRevenueDetails = (data) => {
         (data?.orderPaidTotalDoneProgress || 0),
     },
     { label: "Total Piutang", value: data?.orderReceivablesTotalActive || 0 },
+    {
+      label: "Nilai Order Belum Lunas — Belum Dibayar",
+      value: data?.orderValueUnpaidTotal || 0,
+    },
+    {
+      label: "Nilai Order Belum Lunas — Bayar DP",
+      value: data?.orderValueDownPaymentTotal || 0,
+    },
     { label: "Total HPP (COGS)", value: data?.orderCogsTotalActive || 0 },
     { label: "Total Margin", value: data?.orderMarginTotalActive || 0 },
   ];

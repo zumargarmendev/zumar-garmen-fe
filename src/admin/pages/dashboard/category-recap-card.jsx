@@ -63,7 +63,7 @@ export const CategoryRecapCard = ({
 
       {/* Konten Dropdown/Detail - INI BAGIAN YANG BERUBAH */}
       <div
-        className={`transition-all duration-500 ease-in-out overflow-hidden ${isOpen ? "max-h-screen mt-4" : "max-h-0"}`}
+        className={`transition-all duration-500 ease-in-out overflow-hidden ${isOpen ? "max-h-none mt-4" : "max-h-0"}`}
       >
         <div className="space-y-4">
           {details.map((category, index) => (

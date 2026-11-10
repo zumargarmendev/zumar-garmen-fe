@@ -283,6 +283,8 @@ export const generateDashboardReport = (dashboardData, categoryData, dateRange) 
     ['— di antaranya DP', formatCurrency(dashboardData?.orderDownPaymentTotalActive || 0)],
     ['Uang Diterima dari Order Selesai', formatCurrency((dashboardData?.orderDownPaymentTotalDoneProgress || 0) + (dashboardData?.orderPaidTotalDoneProgress || 0))],
     ['Total Piutang', formatCurrency(dashboardData?.orderReceivablesTotalActive || 0)],
+    ['Nilai Order Belum Lunas - Belum Dibayar', formatCurrency(dashboardData?.orderValueUnpaidTotal || 0)],
+    ['Nilai Order Belum Lunas - Bayar DP', formatCurrency(dashboardData?.orderValueDownPaymentTotal || 0)],
     ['Total HPP (COGS)', formatCurrency(dashboardData?.orderCogsTotalActive || 0)],
     ['Total Margin', formatCurrency(dashboardData?.orderMarginTotalActive || 0)],
   ];
@@ -1902,10 +1904,13 @@ const generateFinalSummaryPage = (doc, totals, summary, profitAllocation, nilaiU
   doc.setFont('helvetica', 'bold');
   doc.text('REKAP RABP', 20, yPos + 10);
 
+  const totalHpp = totals.totalBahan + totals.totalJasaOperasional + totals.totalUtilitiesDanBekakas;
+
   const rekapRABData = [
     ['TOTAL BAHAN', formatCurrency(totals.totalBahan)],
     ['TOTAL OPERASIONAL', formatCurrency(totals.totalJasaOperasional)],
     ['TOTAL UTILITIES & BEKAKAS', formatCurrency(totals.totalUtilitiesDanBekakas)],
+    ['TOTAL HPP', formatCurrency(totalHpp)],
     ['TOTAL UNTUNG', formatCurrency(totalUntung)],
     ['PERCENT', `${Number.isFinite(percent) ? percent.toFixed(2) : 0}%`],
     ['TOTAL MARGIN', formatCurrency(totals.totalMargin)],
@@ -1915,8 +1920,8 @@ const generateFinalSummaryPage = (doc, totals, summary, profitAllocation, nilaiU
     ['SELISIH UNTUNG', selisihUntung === 0 ? 'BALANCE' : formatCurrency(selisihUntung)]
   ];
 
-  const leftColumn = rekapRABData.slice(0, 5);
-  const rightColumn = rekapRABData.slice(5);
+  const leftColumn = rekapRABData.slice(0, 6);
+  const rightColumn = rekapRABData.slice(6);
 
   autoTable(doc, {
     startY: yPos + 15,

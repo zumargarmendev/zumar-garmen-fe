@@ -1215,22 +1215,18 @@ export default function EditRabOrder() {
     },
   );
 
-  const nilaiUntung =
-    totals?.nilaiPO -
-    totals?.totalBahan -
-    totals?.totalJasaOperasional -
+  const totalHpp =
+    totals?.totalBahan +
+    totals?.totalJasaOperasional +
     totals?.totalUtilitiesDanBekakas;
+
+  const nilaiUntung = totals?.nilaiPO - totalHpp;
 
   const totalUntung = totals?.totalMargin + totals?.totalSisaUntung;
 
   const selisihUntung = nilaiUntung - totalUntung;
 
-  const percent =
-    (totalUntung /
-      (totals?.totalBahan +
-        totals?.totalJasaOperasional +
-        totals?.totalUtilitiesDanBekakas)) *
-    100;
+  const percent = (totalUntung / totalHpp) * 100;
 
   const biayaMainDanDevelop =
     (summary?.ocbpsSettingMainDevelopPercentage * totals?.totalSisaUntung) /
@@ -1366,6 +1362,14 @@ export default function EditRabOrder() {
                       </span>
                       <span className="font-semibold">
                         {formatCurrency(totals.totalUtilitiesDanBekakas)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between border-t pt-2">
+                      <span className="text-gray-700 font-medium">
+                        Total HPP
+                      </span>
+                      <span className="font-bold">
+                        {formatCurrency(totalHpp)}
                       </span>
                     </div>
                     <div className="flex justify-between">
